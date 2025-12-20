@@ -12,6 +12,7 @@ urlpatterns = [
     path('create/', views.ticket_create, name='ticket_create'),
     path('<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
     path('<int:ticket_id>/edit/', views.ticket_edit, name='ticket_edit'),
+    path('api/new-tickets/', views.get_new_tickets, name='get_new_tickets'),
     
     # Комментарии
     path('<int:ticket_id>/comment/', views.add_comment, name='add_comment'),

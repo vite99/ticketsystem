@@ -50,7 +50,7 @@
                 {% endif %}
             </div>
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0" id="ticketsTable">
                     <thead class="table-light">
                         <tr>
                             <th style="width: 80px;">ID</th>
@@ -59,12 +59,13 @@
                             <th style="width: 120px;">Статус</th>
                             {% if user.is_staff %}
                             <th style="width: 150px;">Создатель</th>
+                            <th style="width: 100px;">Кабинет</th>
                             {% endif %}
                             <th style="width: 150px;">Назначено</th>
                             <th style="width: 100px;">Дата</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="ticketsBody">
                         {% for ticket in tickets %}
                         <tr class="ticket-row" onclick="window.location='{% url 'ticket_detail' ticket.id %}';" style="cursor: pointer;">
                             <td><strong>#{{ ticket.id }}</strong></td>
@@ -81,6 +82,7 @@
                             </td>
                             {% if user.is_staff %}
                             <td>{{ ticket.creator.get_full_name|default:ticket.creator.username }}</td>
+                            <td>{{ ticket.room|default:"-" }}</td>
                             {% endif %}
                             <td>
                                 {% if ticket.assigned_to %}
@@ -94,9 +96,9 @@
                         {% empty %}
                         <tr>
                             {% if user.is_staff %}
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                             {% else %}
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                             {% endif %}
                                 Тикеты не найдены
                             </td>
@@ -145,4 +147,146 @@
         {% endif %}
     </div>
 </div>
+
+<!-- JavaScript для реал-тайм обновления тикетов -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Получить ID максимального тикета на странице
+    let lastTicketId = 0;
+    const isStaff = {{ user.is_staff|lower }};
+    
+    function updateLastTicketId() {
+        const rows = document.querySelectorAll('#ticketsTable tbody tr.ticket-row');
+        if (rows.length > 0) {
+            const firstRow = rows[0];
+            const ticketIdText = firstRow.querySelector('td:first-child strong').textContent;
+            lastTicketId = parseInt(ticketIdText.replace('#', ''));
+        }
+    }
+    
+    // Функция для получения новых тикетов
+    function checkForNewTickets() {
+        fetch(`/api/new-tickets/?last_id=${lastTicketId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.count > 0) {
+                    addNewTicketsToTable(data.tickets);
+                    updateLastTicketId();
+                    showNotification(`Добавлены ${data.count} новые тикеты`, 'success');
+                }
+            })
+            .catch(error => console.error('Ошибка при получении тикетов:', error));
+    }
+    
+    // Функция для добавления новых тикетов в таблицу
+    function addNewTicketsToTable(tickets) {
+        const tbody = document.getElementById('ticketsBody');
+        
+        // Если была строка "тикеты не найдены", удалить её
+        const emptyRow = tbody.querySelector('tr td[colspan]');
+        if (emptyRow) {
+            emptyRow.closest('tr').remove();
+        }
+        
+        // Добавить новые тикеты в начало таблицы
+        tickets.forEach(ticket => {
+            const row = createTicketRow(ticket);
+            tbody.insertBefore(row, tbody.firstChild);
+        });
+    }
+    
+    // Функция для создания строки таблицы
+    function createTicketRow(ticket) {
+        const row = document.createElement('tr');
+        row.className = 'ticket-row';
+        row.style.cursor = 'pointer';
+        row.onclick = function() {
+            window.location = `/tickets/${ticket.id}/`;
+        };
+        
+        // Определить цвет приоритета
+        const priorityColorMap = {
+            'LOW': 'secondary',
+            'MEDIUM': 'info',
+            'HIGH': 'warning',
+            'CRITICAL': 'danger'
+        };
+        const priorityColor = priorityColorMap[ticket.priority] || 'secondary';
+        
+        // HTML для строки
+        let html = `
+            <td><strong>#${ticket.id}</strong></td>
+            <td>${ticket.title}</td>
+            <td>
+                <span class="badge badge-${priorityColor}">
+                    ${getPriorityDisplay(ticket.priority)}
+                </span>
+            </td>
+            <td>
+                <span class="badge" style="background-color: ${getStatusColor(ticket.status)};">
+                    ${getStatusDisplay(ticket.status)}
+                </span>
+            </td>
+        `;
+        
+        if (isStaff) {
+            html += `
+                <td>${ticket.creator}</td>
+                <td>${ticket.room}</td>
+            `;
+        }
+        
+        html += `
+            <td><span class="text-muted">не назначено</span></td>
+            <td>${ticket.created_at}</td>
+        `;
+        
+        row.innerHTML = html;
+        return row;
+    }
+    
+    // Функция для отображения приоритета на русском
+    function getPriorityDisplay(priority) {
+        const map = {
+            'LOW': 'Низкий',
+            'MEDIUM': 'Средний',
+            'HIGH': 'Высокий',
+            'CRITICAL': 'Критический'
+        };
+        return map[priority] || priority;
+    }
+    
+    // Функция для отображения статуса на русском
+    function getStatusDisplay(status) {
+        const map = {
+            'OPEN': 'Открыт',
+            'IN_PROGRESS': 'В работе',
+            'WAITING': 'Ожидание',
+            'RESOLVED': 'Решен',
+            'CLOSED': 'Закрыт',
+            'REOPENED': 'Переоткрыт'
+        };
+        return map[status] || status;
+    }
+    
+    // Функция для получения цвета статуса
+    function getStatusColor(status) {
+        const map = {
+            'OPEN': '#0d6efd',
+            'IN_PROGRESS': '#0dcaf0',
+            'WAITING': '#ffc107',
+            'RESOLVED': '#198754',
+            'CLOSED': '#6c757d',
+            'REOPENED': '#dc3545'
+        };
+        return map[status] || '#6c757d';
+    }
+    
+    // Инициализация
+    updateLastTicketId();
+    
+    // Проверять новые тикеты каждые 5 секунд
+    setInterval(checkForNewTickets, 5000);
+});
+</script>
 {% endblock %}

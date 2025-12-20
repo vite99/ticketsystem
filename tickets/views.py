@@ -366,3 +366,58 @@ def revoke_approval(request, user_id):
     
     context = {'user': user}
     return render(request, 'tickets/revoke_approval.html', context)
+
+
+@require_approval
+def get_new_tickets(request):
+    """API endpoint для получения новых тикетов (для AJAX)"""
+    from django.http import JsonResponse
+    
+    # Получить ID последнего просмотренного тикета из параметров
+    last_ticket_id = request.GET.get('last_id', 0)
+    
+    # Получить количество новых тикетов
+    tickets = Ticket.objects.filter(id__gt=last_ticket_id).order_by('-created_at')[:10]
+    
+    # Форматировать данные для JSON
+    tickets_data = []
+    for ticket in tickets:
+        status_name = ticket.status.name if ticket.status else 'UNKNOWN'
+        priority_name = ticket.priority.name if ticket.priority else 'MEDIUM'
+        
+        # Определить цвета для badge
+        priority_colors = {
+            'LOW': 'secondary',
+            'MEDIUM': 'info',
+            'HIGH': 'warning',
+            'CRITICAL': 'danger'
+        }
+        status_colors = {
+            'OPEN': 'primary',
+            'IN_PROGRESS': 'info',
+            'WAITING': 'warning',
+            'RESOLVED': 'success',
+            'CLOSED': 'secondary',
+            'REOPENED': 'danger'
+        }
+        
+        ticket_info = {
+            'id': ticket.id,
+            'title': ticket.title,
+            'description': ticket.description[:100] + ('...' if len(ticket.description) > 100 else ''),
+            'creator': ticket.creator.username,
+            'priority': priority_name,
+            'priority_color': priority_colors.get(priority_name, 'secondary'),
+            'status': status_name,
+            'status_color': status_colors.get(status_name, 'secondary'),
+            'created_at': ticket.created_at.strftime('%Y-%m-%d %H:%M'),
+            'room': ticket.room or '-',
+            'is_staff': request.user.is_staff
+        }
+        tickets_data.append(ticket_info)
+    
+    return JsonResponse({
+        'success': True,
+        'tickets': tickets_data,
+        'count': len(tickets_data)
+    })
