@@ -1,0 +1,276 @@
+🎫 TICKET SYSTEM - БЫСТРЫЙ СПРАВОЧНИК
+======================================
+
+📖 ДОКУМЕНТАЦИЯ
+───────────────
+
+1. README.md                  - Основное описание проекта
+2. DEPLOYMENT.md              - Инструкции по развертыванию
+3. PROJECT_STRUCTURE.txt      - Полная структура файлов и моделей
+
+🚀 БЫСТРЫЙ СТАРТ
+─────────────────
+
+Windows:
+  1. Дважды кликнуть на setup.bat
+  2. Следовать инструкциям
+
+Linux/Mac:
+  1. bash setup.sh
+  2. Следовать инструкциям
+
+Или вручную:
+  python -m venv venv
+  source venv/bin/activate      # Linux/Mac
+  venv\Scripts\activate         # Windows
+  pip install -r requirements.txt
+  python manage.py migrate
+  python init_db.py
+  python manage.py runserver
+
+🔐 УЧЕТНЫЕ ДАННЫЕ (по умолчанию)
+─────────────────────────────────
+
+  Логин: admin
+  Пароль: admin123
+
+🔗 ВАЖНЫЕ ССЫЛКИ
+────────────────
+
+Локально (http://localhost:8000):
+  - Главная: http://localhost:8000/
+  - Список тикетов: http://localhost:8000/
+  - Создать тикет: http://localhost:8000/create/
+  - Мой кабинет: http://localhost:8000/dashboard/
+  - Админка: http://localhost:8000/admin/
+  - Вход: http://localhost:8000/login/
+
+📁 ОСНОВНЫЕ ФАЙЛЫ ДЛЯ РЕДАКТИРОВАНИЯ
+──────────────────────────────────────
+
+Модели данных:
+  → tickets/models.py
+    Здесь определены все модели:
+    - Priority, Status, Tag (классификация)
+    - Ticket, Comment, Attachment (основные сущности)
+    - TicketHistory (отслеживание)
+
+Представления (Views):
+  → tickets/views.py
+    Все бизнес-логика для обработки запросов:
+    - Список и фильтр тикетов
+    - Создание и редактирование
+    - Комментарии и прикрепления
+
+Формы:
+  → tickets/forms.py
+    Формы для создания/редактирования:
+    - TicketForm
+    - CommentForm
+
+Шаблоны (HTML):
+  → templates/base.html              (базовый шаблон)
+  → templates/tickets/ticket_list.html (список тикетов)
+  → templates/tickets/ticket_detail.html (просмотр тикета)
+  → templates/tickets/ticket_form.html (форма создания/редактирования)
+  → templates/tickets/login.html (страница входа)
+  → templates/tickets/dashboard.html (личный кабинет)
+
+Админка:
+  → tickets/admin.py
+    Конфигурация Django Admin для управления данными
+
+Маршруты:
+  → ticket_system/urls.py (главные маршруты)
+  → tickets/urls.py (маршруты приложения)
+
+⚙️ ОСНОВНЫЕ КОМАНДЫ
+────────────────────
+
+Разработка:
+  python manage.py runserver              # Запуск сервера
+  python manage.py migrate                # Применить миграции
+  python manage.py makemigrations         # Создать миграции
+  python manage.py createsuperuser        # Создать админа
+  python init_db.py                       # Инициализировать БД
+  python manage.py test tickets           # Запустить тесты
+  python manage.py shell                  # Python shell с Django контекстом
+
+Production:
+  python manage.py collectstatic          # Собрать static файлы
+  python manage.py check --deploy         # Проверить production настройки
+
+🐛 РЕШЕНИЕ ПРОБЛЕМ
+──────────────────
+
+Ошибка: "No module named 'rest_framework'"
+  Решение: pip install -r requirements.txt
+
+Ошибка: "ModuleNotFoundError: No module named 'django'"
+  Решение: source venv/bin/activate && pip install -r requirements.txt
+
+Ошибка: "Database is locked"
+  Решение: Закрыть все процессы Django и удалить db.sqlite3, заново запустить migrate
+
+Ошибка: "port 8000 already in use"
+  Решение: python manage.py runserver 8001 (использовать другой порт)
+
+Ошибка: "CSRF verification failed"
+  Решение: Убедиться что {% csrf_token %} в форме
+
+🧪 ТЕСТИРОВАНИЕ
+────────────────
+
+Запустить все тесты:
+  python manage.py test
+
+Запустить тесты с подробностью:
+  python manage.py test --verbosity=2
+
+Запустить конкретный тест:
+  python manage.py test tickets.tests.TicketModelTest
+
+Текущее покрытие:
+  ✓ TicketModelTest
+  ✓ CommentModelTest
+  ✓ TicketViewTest
+  ✓ TagModelTest
+
+🗄️ БАЗА ДАННЫХ
+────────────────
+
+Текущая БД: SQLite (db.sqlite3)
+
+Инициализировать БД с нуля:
+  python manage.py flush
+  python manage.py migrate
+  python init_db.py
+
+Резервная копия (SQLite):
+  cp db.sqlite3 db.sqlite3.backup
+
+Экспорт данных:
+  python manage.py dumpdata > data.json
+
+Импорт данных:
+  python manage.py loaddata data.json
+
+📧 EMAIL / SMTP
+────────────────
+
+Для отправки писем, установите в .env:
+
+  EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+  EMAIL_HOST=smtp.gmail.com
+  EMAIL_PORT=587
+  EMAIL_USE_TLS=True
+  EMAIL_HOST_USER=your-email@gmail.com
+  EMAIL_HOST_PASSWORD=app_password_here
+  DEFAULT_FROM_EMAIL=noreply@ticketsystem.local
+
+Примечание для Gmail:
+  1. Включить двухфакторную аутентификацию
+  2. Создать App Password (приложение)
+  3. Использовать эту пароль в EMAIL_HOST_PASSWORD
+
+🌐 PRODUCTION DEPLOYMENT
+─────────────────────────
+
+1. Heroku:
+   heroku create my-ticket-app
+   heroku config:set SECRET_KEY="..."
+   git push heroku main
+
+2. Docker:
+   docker-compose up
+
+3. Linux VPS (Nginx + Gunicorn):
+   см. DEPLOYMENT.md для полных инструкций
+
+📊 СТРУКТУРА МОДЕЛЕЙ
+──────────────────────
+
+Priority → Ticket
+  (один ко многим)
+
+Status → Ticket
+  (один ко многим)
+
+Tag ↔ Ticket
+  (многие ко многим)
+
+User → Ticket (creator)
+  (один ко многим)
+
+User → Ticket (assigned_to)
+  (один ко многим)
+
+Ticket → Comment
+  (один ко многим)
+
+Ticket → Attachment
+  (один ко многим)
+
+Ticket → TicketHistory
+  (один ко многим)
+
+💡 СОВЕТЫ И ТРЮКИ
+──────────────────
+
+1. Django Shell для тестирования:
+   python manage.py shell
+   from tickets.models import Ticket
+   Ticket.objects.all()
+
+2. Queryset для фильтрации:
+   Ticket.objects.filter(status__name='open')
+   Ticket.objects.filter(assigned_to=user_obj)
+   Ticket.objects.filter(priority__name='critical')
+
+3. Создание тестовых данных:
+   python manage.py shell
+   from django.contrib.auth.models import User
+   user = User.objects.create_user('testuser', 'test@test.com', 'pass')
+
+4. Просмотр SQL запросов:
+   from django.db import connection
+   from django.test.utils import CaptureQueriesContext
+   with CaptureQueriesContext(connection) as context:
+       # ваш код
+   print(context)
+
+🔐 БЕЗОПАСНОСТЬ
+─────────────────
+
+⚠️  НИКОГДА не публикуйте:
+   - SECRET_KEY
+   - PASSWORD в .env файле
+   - Учетные данные БД
+   - API ключи
+
+✅ ВСЕГДА:
+   - Используйте HTTPS на production
+   - Установите DEBUG=False на production
+   - Используйте ALLOWED_HOSTS
+   - Обновляйте зависимости (pip list --outdated)
+
+📞 ПОДДЕРЖКА
+──────────────
+
+Официальная документация Django:
+  https://docs.djangoproject.com/
+
+Django REST Framework:
+  https://www.django-rest-framework.org/
+
+Bootstrap 5:
+  https://getbootstrap.com/
+
+PostgreSQL:
+  https://www.postgresql.org/
+
+---
+
+Версия: 1.0.0
+Дата обновления: 20.12.2025
+Статус: Production Ready ✅

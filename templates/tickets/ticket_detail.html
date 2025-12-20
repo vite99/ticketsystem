@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ticket.title }} - Ticket System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Информация о тикете -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">#{{ ticket.id }} - {{ ticket.title }}</h4>
+                {% if can_edit %}
+                <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-sm btn-warning">Редактировать</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Статус:</strong></p>
+                        <span class="badge" style="background-color: {{ ticket.status.color }}; font-size: 1rem;">
+                            {{ ticket.status.get_name_display }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Приоритет:</strong></p>
+                        <span class="badge priority-{{ ticket.priority.name }}" style="font-size: 1rem;">
+                            {{ ticket.priority.get_name_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Создатель:</strong> {{ ticket.creator.get_full_name|default:ticket.creator.username }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Назначено:</strong> 
+                            {% if ticket.assigned_to %}
+                                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                            {% else %}
+                                <span class="text-muted">не назначено</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Дата создания:</strong> {{ ticket.created_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Последнее обновление:</strong> {{ ticket.updated_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                </div>
+
+                {% if ticket.due_date %}
+                <div class="alert alert-info">
+                    <strong>Срок выполнения:</strong> {{ ticket.due_date|date:"d.m.Y H:i" }}
+                </div>
+                {% endif %}
+
+                {% if ticket.tags.exists %}
+                <div class="mb-3">
+                    <p><strong>Теги:</strong></p>
+                    {% for tag in ticket.tags.all %}
+                    <span class="badge" style="background-color: {{ tag.color }};">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <hr>
+                <h5>Описание</h5>
+                <p>{{ ticket.description|linebreaks }}</p>
+            </div>
+        </div>
+
+        <!-- Комментарии -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Комментарии ({{ comments.count }})</h5>
+            </div>
+            <div class="card-body">
+                {% for comment in comments %}
+                    {% if not comment.is_internal or user == comment.author or user == ticket.creator or user == ticket.assigned_to or user.is_staff %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                                {% if comment.is_internal %}
+                                <span class="badge bg-warning">Внутренний</span>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <p>{{ comment.content|linebreaks }}</p>
+                        <hr>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                <p class="text-muted">Комментариев нет</p>
+                {% endfor %}
+
+                {% if user.is_authenticated %}
+                <form method="post" action="{% url 'add_comment' ticket.id %}" class="mt-3">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Добавить комментарий</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="col-md-4">
+        <!-- Вложения -->
+        {% if attachments %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Вложения</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for attachment in attachments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ attachment.file.url }}" target="_blank">📎 {{ attachment.file.name|slice:"33:" }}</a>
+                            {% if attachment.description %}
+                            <p class="text-muted small mb-0">{{ attachment.description }}</p>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ attachment.uploaded_at|date:"d.m" }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Информационная панель -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Информация</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-6">ID:</dt>
+                    <dd class="col-sm-6">#{{ ticket.id }}</dd>
+
+                    {% if ticket.estimated_hours %}
+                    <dt class="col-sm-6">Часы:</dt>
+                    <dd class="col-sm-6">{{ ticket.estimated_hours }} ч.</dd>
+                    {% endif %}
+
+                    {% if ticket.resolved_at %}
+                    <dt class="col-sm-6">Решено:</dt>
+                    <dd class="col-sm-6">{{ ticket.resolved_at|date:"d.m.Y" }}</dd>
+                    {% endif %}
+
+                    {% if ticket.closed_at %}
+                    <dt class="col-sm-6">Закрыто:</dt>
+                    <dd class="col-sm-6">{{ ticket.closed_at|date:"d.m.Y" }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="d-grid gap-2">
+            <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">← Вернуться к списку</a>
+            {% if can_edit %}
+            <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">Редактировать</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

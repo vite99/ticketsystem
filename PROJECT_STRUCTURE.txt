@@ -1,0 +1,319 @@
+📁 СТРУКТУРА ПРОЕКТА - Ticket System
+=====================================
+
+диплом/
+│
+├── 📄 manage.py                    # Главный скрипт управления Django
+├── 📄 requirements.txt             # Зависимости проекта
+├── 📄 db.sqlite3                   # База данных SQLite
+├── 📄 .env                         # Переменные окружения
+├── 📄 init_db.py                   # Скрипт инициализации БД
+├── 📄 setup.sh                     # Скрипт быстрого старта (Linux/Mac)
+├── 📄 setup.bat                    # Скрипт быстрого старта (Windows)
+│
+├── 📄 README.md                    # Основная документация
+├── 📄 DEPLOYMENT.md                # Инструкции по развертыванию
+├── 📄 PROJECT_STRUCTURE.txt        # Этот файл
+│
+├── 📁 venv/                        # Виртуальное окружение Python
+│   └── ...
+│
+├── 📁 ticket_system/               # Конфигурация проекта Django
+│   ├── 📄 __init__.py
+│   ├── 📄 settings.py              # Конфигурация Django (БД, приложения, email и т.д.)
+│   ├── 📄 urls.py                  # Главные маршруты приложения
+│   ├── 📄 asgi.py                  # ASGI конфигурация
+│   └── 📄 wsgi.py                  # WSGI конфигурация для production
+│
+├── 📁 tickets/                     # Главное приложение (система управления тикетами)
+│   ├── 📄 __init__.py
+│   ├── 📄 models.py                # Модели данных:
+│   │                               #   - Priority (приоритеты)
+│   │                               #   - Status (статусы)
+│   │                               #   - Tag (теги для категоризации)
+│   │                               #   - Ticket (основная модель тикета)
+│   │                               #   - Comment (комментарии)
+│   │                               #   - Attachment (вложения)
+│   │                               #   - TicketHistory (история изменений)
+│   │
+│   ├── 📄 views.py                 # Представления (views):
+│   │                               #   - TicketLoginView / TicketLogoutView (аутентификация)
+│   │                               #   - ticket_list (список тикетов с фильтром)
+│   │                               #   - ticket_detail (детальный просмотр)
+│   │                               #   - ticket_create / ticket_edit (создание/редактирование)
+│   │                               #   - add_comment (добавление комментариев)
+│   │                               #   - my_dashboard (личный кабинет)
+│   │
+│   ├── 📄 forms.py                 # Django формы:
+│   │                               #   - TicketForm
+│   │                               #   - CommentForm
+│   │
+│   ├── 📄 admin.py                 # Конфигурация Django Admin:
+│   │                               #   - PriorityAdmin
+│   │                               #   - StatusAdmin
+│   │                               #   - TagAdmin
+│   │                               #   - TicketAdmin (с инлайн редактированием)
+│   │                               #   - CommentAdmin
+│   │                               #   - AttachmentAdmin
+│   │                               #   - TicketHistoryAdmin
+│   │
+│   ├── 📄 urls.py                  # Маршруты приложения tickets:
+│   │                               #   - /login/ - вход
+│   │                               #   - /logout/ - выход
+│   │                               #   - / - список тикетов
+│   │                               #   - /create/ - создание
+│   │                               #   - /<id>/ - просмотр
+│   │                               #   - /<id>/edit/ - редактирование
+│   │                               #   - /<id>/comment/ - добавить комментарий
+│   │                               #   - /dashboard/ - личный кабинет
+│   │
+│   ├── 📄 tests.py                 # Юнит-тесты:
+│   │                               #   - TicketModelTest
+│   │                               #   - CommentModelTest
+│   │                               #   - TagModelTest
+│   │                               #   - TicketViewTest
+│   │
+│   ├── 📁 migrations/              # Миграции БД
+│   │   ├── 📄 0001_initial.py
+│   │   └── 📄 __init__.py
+│   │
+│   └── 📁 __pycache__/             # Python кэш
+│
+├── 📁 templates/                   # HTML шаблоны
+│   ├── 📄 base.html                # Базовый шаблон (навигация, стили)
+│   │
+│   └── 📁 tickets/                 # Шаблоны приложения tickets
+│       ├── 📄 ticket_list.html     # Список тикетов с фильтром и поиском
+│       ├── 📄 ticket_detail.html   # Детальный просмотр тикета + комментарии
+│       ├── 📄 ticket_form.html     # Форма создания/редактирования тикета
+│       ├── 📄 login.html           # Страница входа
+│       ├── 📄 dashboard.html       # Личный кабинет с статистикой
+│       └── 📄 comment_form.html    # Форма добавления комментария
+│
+├── 📁 static/                      # Статические файлы (CSS, JS, images)
+│   ├── 📁 css/
+│   ├── 📁 js/
+│   └── 📁 img/
+│
+├── 📁 media/                       # Загруженные пользователями файлы
+│   └── 📁 tickets/
+│       └── 📁 attachments/
+│
+└── 📁 .vscode/                     # Конфигурация VS Code (опционально)
+    └── 📄 settings.json
+
+
+МОДЕЛИ ДАННЫХ
+==============
+
+Priority (Приоритет)
+  - name: CharField (low, medium, high, critical)
+  - color: CharField (HEX цвет)
+
+Status (Статус)
+  - name: CharField (open, in_progress, waiting, resolved, closed, reopened)
+  - color: CharField (HEX цвет)
+  - is_final: BooleanField
+
+Tag (Тег)
+  - name: CharField (уникальное)
+  - description: TextField
+  - color: CharField
+
+Ticket (Тикет) [ГЛАВНАЯ МОДЕЛЬ]
+  - title: CharField
+  - description: TextField
+  - creator: ForeignKey(User)
+  - assigned_to: ForeignKey(User, null=True, blank=True)
+  - priority: ForeignKey(Priority)
+  - status: ForeignKey(Status)
+  - tags: ManyToManyField(Tag)
+  - created_at: DateTimeField (auto)
+  - updated_at: DateTimeField (auto)
+  - resolved_at: DateTimeField (null)
+  - closed_at: DateTimeField (null)
+  - due_date: DateTimeField (null)
+  - estimated_hours: FloatField (null)
+
+Comment (Комментарий)
+  - ticket: ForeignKey(Ticket)
+  - author: ForeignKey(User)
+  - content: TextField
+  - created_at: DateTimeField (auto)
+  - updated_at: DateTimeField (auto)
+  - is_internal: BooleanField
+
+Attachment (Вложение)
+  - ticket: ForeignKey(Ticket, null=True)
+  - comment: ForeignKey(Comment, null=True)
+  - file: FileField
+  - uploaded_by: ForeignKey(User)
+  - uploaded_at: DateTimeField (auto)
+  - description: CharField
+
+TicketHistory (История)
+  - ticket: ForeignKey(Ticket)
+  - actor: ForeignKey(User)
+  - action: CharField (created, updated, assigned, status_changed, priority_changed)
+  - old_value: TextField
+  - new_value: TextField
+  - created_at: DateTimeField (auto)
+
+
+ОСНОВНЫЕ ФУНКЦИИ
+=================
+
+✅ Управление тикетами
+   - Создание новых тикетов
+   - Редактирование (только для автора, назначенного или админа)
+   - Просмотр со всеми деталями
+   - Удаление (админом)
+
+✅ Система статусов и приоритетов
+   - 6 встроенных статусов
+   - 4 встроенных приоритета
+   - Кастомизируемые цвета для визуализации
+
+✅ Назначение и распределение
+   - Автоматическое назначение тикета пользователю
+   - Переназначение задач
+   - Отслеживание истории изменений
+
+✅ Комментарии и обсуждение
+   - Публичные комментарии
+   - Внутренние комментарии (скрыты от публики)
+   - Отслеживание автора и времени
+
+✅ Вложения файлов
+   - Загрузка документов, скриншотов и т.д.
+   - Валидация типов файлов
+   - Связь с тикетом или конкретным комментарием
+
+✅ Фильтрация и поиск
+   - Поиск по названию и описанию
+   - Фильтр по статусу
+   - Фильтр по приоритету
+   - Просмотр "мои тикеты"
+
+✅ Личный кабинет
+   - Просмотр созданных мной тикетов
+   - Просмотр назначенных мне тикетов
+   - Статистика (открытые, решенные и т.д.)
+
+✅ Аутентификация и разрешения
+   - Система логина/выхода
+   - Защита от неавторизованного доступа
+   - Роли: обычный пользователь, администратор
+   - Система прав доступа на уровне объектов
+
+✅ Админка Django
+   - Управление всеми сущностями
+   - Инлайн редактирование комментариев и вложений
+   - История изменений
+   - Поиск и фильтрация
+
+
+КОНФИГУРАЦИЯ
+============
+
+settings.py включает:
+  ✓ Django приложения (admin, auth, contenttypes, sessions, tickets, rest_framework, corsheaders)
+  ✓ Middleware для CORS, сессий, безопасности
+  ✓ Шаблоны (base.html + шаблоны приложения)
+  ✓ SQLite БД (можно переключить на PostgreSQL для production)
+  ✓ REST Framework с базовой аутентификацией
+  ✓ CORS для интеграции с фронтенд приложениями
+  ✓ Email/SMTP конфигурация (для отправки уведомлений)
+  ✓ Загрузка файлов с валидацией типов
+  ✓ Интернационализация (Russian locale)
+
+
+ТЕСТИРОВАНИЕ
+=============
+
+Запуск всех тестов:
+  python manage.py test
+
+Запуск тестов приложения tickets:
+  python manage.py test tickets
+
+Запуск конкретного теста:
+  python manage.py test tickets.tests.TicketModelTest
+
+Текущее покрытие тестами:
+  ✓ TicketModelTest (4 теста)
+  ✓ CommentModelTest (2 теста)
+  ✓ TicketViewTest (1 тест)
+  ✓ TagModelTest (1 тест)
+
+
+ЗАПУСК И РАЗВЕРТЫВАНИЕ
+=======================
+
+Локальная разработка:
+  1. python -m venv venv
+  2. source venv/bin/activate (или venv\Scripts\activate на Windows)
+  3. pip install -r requirements.txt
+  4. python manage.py migrate
+  5. python init_db.py
+  6. python manage.py runserver
+
+Production (подробнее см. DEPLOYMENT.md):
+  - Heroku: git push heroku main
+  - Docker: docker-compose up
+  - VPS: systemctl start ticket_gunicorn
+
+
+ИНФОРМАЦИЯ ДЛЯ ВХОДА (по умолчанию)
+====================================
+
+  Логин: admin
+  Пароль: admin123
+  
+  ⚠️  ВАЖНО: Измените пароль сразу после первого входа!
+
+
+РАСШИРЕНИЕ ФУНКЦИОНАЛА
+======================
+
+Для добавления новых функций:
+
+1. Модели:
+   - Добавьте в tickets/models.py
+   - Создайте миграцию: python manage.py makemigrations
+   - Примените миграцию: python manage.py migrate
+
+2. Представления (Views):
+   - Добавьте в tickets/views.py
+   - Зарегистрируйте URL в tickets/urls.py
+
+3. Формы:
+   - Добавьте в tickets/forms.py
+
+4. Шаблоны:
+   - Создайте в templates/tickets/
+
+5. API:
+   - Создайте serializers.py
+   - Добавьте ViewSets в views.py
+   - Зарегистрируйте в urls.py с использованием DefaultRouter
+
+
+ИЗВЕСТНЫЕ ОГРАНИЧЕНИЯ
+====================
+
+  ⚠️  SQLite для production не рекомендуется
+  ⚠️  Максимальный размер файла - 50MB (настраивается)
+  ⚠️  Система не поддерживает кириллицу в URL
+  ⚠️  Требуется конфигурация SMTP для отправки писем
+
+
+ПОСЛЕДНЕЕ ОБНОВЛЕНИЕ
+====================
+
+Версия: 1.0.0
+Дата: 20.12.2025
+Статус: Production Ready ✅
+
+Разработчик: GitHub Copilot
+Лицензия: MIT
