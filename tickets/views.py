@@ -68,6 +68,22 @@ def require_approval(view_func):
 @require_approval
 def ticket_list(request):
     """Список всех тикетов с фильтрацией"""
+    from django.core.cache import cache
+    
+    # Получаем уведомления для админов
+    if request.user.is_staff:
+        cache_key = f'notification_admin_{request.user.id}'
+        notifications = cache.get(cache_key, [])
+        if notifications:
+            # Показываем уведомления
+            for notif in notifications:
+                if notif['type'] == 'warning':
+                    messages.warning(request, notif['message'])
+                else:
+                    messages.info(request, notif['message'])
+            # Очищаем уведомления
+            cache.delete(cache_key)
+    
     tickets = Ticket.objects.all()
     
     # Фильтрация по статусу
@@ -137,12 +153,8 @@ def ticket_create(request):
             ticket.save()
             form.save_m2m()  # Сохранить M2M отношения (теги)
             
-            # Отправляем сообщение всем администраторам
-            admins = User.objects.filter(is_staff=True)
-            for admin in admins:
-                messages.info(admin, f'🆕 Новый тикет #{ticket.id}: {ticket.title} (автор: {request.user.username})')
-            
-            messages.success(request, f'Тикет #{ticket.id} успешно создан!')
+            # Отправляем сообщение об успешном создании
+            messages.success(request, f'✅ Тикет #{ticket.id} успешно создан!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = TicketForm()
@@ -164,12 +176,8 @@ def ticket_edit(request, ticket_id):
         if form.is_valid():
             ticket = form.save()
             
-            # Отправляем сообщение всем администраторам об изменении
-            admins = User.objects.filter(is_staff=True)
-            for admin in admins:
-                messages.warning(admin, f'✏️ Тикет #{ticket.id} был изменён: {ticket.title} (редактор: {request.user.username})')
-            
-            messages.success(request, f'Тикет #{ticket.id} успешно обновлён!')
+            # Отправляем сообщение об успешном обновлении
+            messages.success(request, f'✅ Тикет #{ticket.id} успешно обновлён!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = TicketForm(instance=ticket)

@@ -173,7 +173,7 @@
             bsToast.show();
         }
 
-        // Проверяем наличие уведомлений при загрузке страницы (для админов)
+        // Проверяем наличие уведомлений при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             // Получаем уведомления из данных страницы (если они есть)
             const notifications = document.querySelectorAll('[data-notification]');
@@ -182,6 +182,16 @@
                 const type = el.dataset.notificationType || 'info';
                 setTimeout(() => showNotification(message, type), 500);
             });
+
+            // Для админов: проверяем наличие уведомлений через WebSocket или AJAX
+            {% if user.is_staff %}
+            // Периодическая проверка новых уведомлений (каждые 5 секунд)
+            setInterval(function() {
+                fetch('{% url "ticket_list" %}?check_notifications=true')
+                    .then(response => response.json())
+                    .catch(error => console.log('No notifications'));
+            }, 5000);
+            {% endif %}
         });
     </script>
     {% block extra_js %}{% endblock %}
