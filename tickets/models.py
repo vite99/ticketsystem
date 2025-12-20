@@ -250,3 +250,39 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     """Сохранить профиль при сохранении пользователя"""
     instance.profile.save()
+
+@receiver(post_save, sender=Ticket)
+def notify_admins_on_ticket_change(sender, instance, created, **kwargs):
+    """Отправить уведомление администраторам при создании или изменении тикета"""
+    from django.contrib.auth.models import User
+    from django.contrib import messages
+    from django.core.cache import cache
+    
+    # Получаем всех администраторов
+    admins = User.objects.filter(is_staff=True)
+    
+    if created:
+        # Уведомление о новом тикете
+        message_text = f'🆕 Новый тикет #{instance.id}: {instance.title}'
+        for admin in admins:
+            # Сохраняем уведомление в кэш для администраторов
+            cache_key = f'notification_admin_{admin.id}'
+            notifications = cache.get(cache_key, [])
+            notifications.append({
+                'message': message_text,
+                'type': 'info',
+                'ticket_id': instance.id
+            })
+            cache.set(cache_key, notifications, timeout=None)
+    else:
+        # Уведомление об изменении тикета
+        message_text = f'✏️ Тикет #{instance.id} был изменён: {instance.title}'
+        for admin in admins:
+            cache_key = f'notification_admin_{admin.id}'
+            notifications = cache.get(cache_key, [])
+            notifications.append({
+                'message': message_text,
+                'type': 'warning',
+                'ticket_id': instance.id
+            })
+            cache.set(cache_key, notifications, timeout=None)

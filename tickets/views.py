@@ -136,6 +136,13 @@ def ticket_create(request):
             ticket.creator = request.user
             ticket.save()
             form.save_m2m()  # Сохранить M2M отношения (теги)
+            
+            # Отправляем сообщение всем администраторам
+            admins = User.objects.filter(is_staff=True)
+            for admin in admins:
+                messages.info(admin, f'🆕 Новый тикет #{ticket.id}: {ticket.title} (автор: {request.user.username})')
+            
+            messages.success(request, f'Тикет #{ticket.id} успешно создан!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = TicketForm()
@@ -156,6 +163,13 @@ def ticket_edit(request, ticket_id):
         form = TicketForm(request.POST, instance=ticket)
         if form.is_valid():
             ticket = form.save()
+            
+            # Отправляем сообщение всем администраторам об изменении
+            admins = User.objects.filter(is_staff=True)
+            for admin in admins:
+                messages.warning(admin, f'✏️ Тикет #{ticket.id} был изменён: {ticket.title} (редактор: {request.user.username})')
+            
+            messages.success(request, f'Тикет #{ticket.id} успешно обновлён!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = TicketForm(instance=ticket)
