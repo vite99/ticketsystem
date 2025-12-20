@@ -55,11 +55,11 @@ class TicketForm(forms.ModelForm):
 
 
 class TicketFormUser(forms.ModelForm):
-    """Упрощённая форма для обычных пользователей (без приоритета, назначения, часов и тегов)"""
+    """Упрощённая форма для обычных пользователей (без назначения, часов и тегов)"""
     
     class Meta:
         model = Ticket
-        fields = ['title', 'description', 'due_date']
+        fields = ['title', 'description', 'priority', 'due_date']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -70,6 +70,9 @@ class TicketFormUser(forms.ModelForm):
                 'rows': 5,
                 'placeholder': 'Подробное описание проблемы'
             }),
+            'priority': forms.Select(attrs={
+                'class': 'form-control'
+            }),
             'due_date': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local'
@@ -78,6 +81,7 @@ class TicketFormUser(forms.ModelForm):
         labels = {
             'title': 'Заголовок',
             'description': 'Описание',
+            'priority': 'Приоритет',
             'due_date': 'Срок выполнения',
         }
 

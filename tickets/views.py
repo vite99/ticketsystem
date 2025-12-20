@@ -154,11 +154,10 @@ def ticket_create(request):
             ticket = form.save(commit=False)
             ticket.creator = request.user
             
-            # Для обычных пользователей устанавливаем статус "Открыт" и приоритет "Средний"
+            # Для обычных пользователей устанавливаем статус "Открыт"
             if not request.user.is_staff:
                 from django.db.models import Q
                 ticket.status = Status.objects.filter(name='open').first() or Status.objects.first()
-                ticket.priority = Priority.objects.filter(name='medium').first() or Priority.objects.first()
             
             ticket.save()
             if hasattr(form, 'save_m2m'):
