@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Административный кабинет{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #667eea;
+    }
+    .admin-stat-card.warning {
+        border-left-color: #ffc107;
+    }
+    .admin-stat-card.danger {
+        border-left-color: #dc3545;
+    }
+    .admin-stat-card.success {
+        border-left-color: #28a745;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #667eea;
+        margin: 10px 0;
+    }
+    .admin-stat-card.warning .stat-number {
+        color: #ffc107;
+    }
+    .admin-stat-card.danger .stat-number {
+        color: #dc3545;
+    }
+    .admin-stat-card.success .stat-number {
+        color: #28a745;
+    }
+    .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .admin-menu {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .admin-menu-item {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        text-decoration: none;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background-color 0.3s;
+    }
+    .admin-menu-item:last-child {
+        border-bottom: none;
+    }
+    .admin-menu-item:hover {
+        background-color: #f8f9fa;
+    }
+    .admin-menu-item i {
+        width: 30px;
+        text-align: center;
+        font-size: 1.2rem;
+        color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">👨‍💼 Административный кабинет</h1>
+        <span class="badge bg-info">Администратор: {{ user.get_full_name|default:user.username }}</span>
+    </div>
+
+    <!-- Основные статистики -->
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="admin-stat-card">
+                <div class="stat-label">Всего тикетов</div>
+                <div class="stat-number">{{ total_tickets }}</div>
+                <small class="text-muted">
+                    <i class="fas fa-arrow-up text-success"></i> В работе: {{ open_tickets }}
+                </small>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="admin-stat-card danger">
+                <div class="stat-label">Критических</div>
+                <div class="stat-number">{{ critical_tickets }}</div>
+                <small class="text-muted">Требуют срочного внимания</small>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="admin-stat-card warning">
+                <div class="stat-label">Ожидающие</div>
+                <div class="stat-number">{{ pending_users }}</div>
+                <small class="text-muted">Пользователей на одобрение</small>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="admin-stat-card success">
+                <div class="stat-label">Всего пользователей</div>
+                <div class="stat-number">{{ total_users }}</div>
+                <small class="text-muted">Одобрено: {{ approved_users }}</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка: Управление -->
+        <div class="col-lg-4">
+            <h5 class="mb-3">Управление системой</h5>
+            <div class="admin-menu">
+                <a href="{% url 'user_approval_list' %}" class="admin-menu-item">
+                    <div>
+                        <i class="fas fa-check-circle"></i>
+                        <span>Одобрение пользователей</span>
+                    </div>
+                    {% if pending_users %}
+                    <span class="badge bg-warning">{{ pending_users }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'admin:index' %}" class="admin-menu-item">
+                    <div>
+                        <i class="fas fa-cog"></i>
+                        <span>Django Админ-панель</span>
+                    </div>
+                    <i class="fas fa-arrow-right" style="color: #999;"></i>
+                </a>
+                <a href="{% url 'ticket_list' %}" class="admin-menu-item">
+                    <div>
+                        <i class="fas fa-list"></i>
+                        <span>Все тикеты</span>
+                    </div>
+                    <span class="badge bg-primary">{{ total_tickets }}</span>
+                </a>
+                <a href="{% url 'ticket_create' %}" class="admin-menu-item">
+                    <div>
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Создать тикет</span>
+                    </div>
+                    <i class="fas fa-arrow-right" style="color: #999;"></i>
+                </a>
+            </div>
+
+            <!-- Статистика по статусам -->
+            <h5 class="mt-4 mb-3">Распределение по статусам</h5>
+            <div class="list-group">
+                {% for status in status_stats %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge" style="background-color: {{ status.color }};">
+                                {{ status.get_name_display }}
+                            </span>
+                        </span>
+                        <span class="badge bg-secondary">{{ status.count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Правая колонка: Информация -->
+        <div class="col-lg-8">
+            <!-- Статистика тикетов -->
+            <h5 class="mb-3">Статистика тикетов</h5>
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-spinner text-info"></i> Открытые
+                            </h6>
+                            <div style="font-size: 2rem; color: #17a2b8;">{{ open_tickets }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-check text-success"></i> Решено
+                            </h6>
+                            <div style="font-size: 2rem; color: #28a745;">{{ resolved_tickets }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-lock text-secondary"></i> Закрыто
+                            </h6>
+                            <div style="font-size: 2rem; color: #6c757d;">{{ closed_tickets }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-exclamation text-danger"></i> Критические
+                            </h6>
+                            <div style="font-size: 2rem; color: #dc3545;">{{ critical_tickets }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Самые активные назначающие -->
+            <h5 class="mb-3">Топ ответственных</h5>
+            <div class="card">
+                <div class="card-body">
+                    {% if top_assignees %}
+                    <div class="list-group list-group-flush">
+                        {% for user in top_assignees %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                                <span class="badge bg-info">{{ user.assigned_count }} тикетов</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Нет назначенных тикетов</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Последние тикеты -->
+            <h5 class="mt-4 mb-3">Последние тикеты</h5>
+            <div class="card">
+                <div class="card-body">
+                    {% if recent_tickets %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Заголовок</th>
+                                    <th>Статус</th>
+                                    <th>Приоритет</th>
+                                    <th>Создатель</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in recent_tickets %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'ticket_detail' ticket.id %}">#{{ ticket.id }}</a>
+                                    </td>
+                                    <td>
+                                        <small>{{ ticket.title|truncatewords:5 }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ ticket.status.color }};">
+                                            {{ ticket.status.get_name_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ ticket.priority.color }};">
+                                            {{ ticket.priority.get_name_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ ticket.creator.username }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Нет тикетов</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

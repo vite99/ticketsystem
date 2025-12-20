@@ -79,8 +79,16 @@
                         <a class="nav-link" href="{% url 'dashboard' %}">Мой кабинет</a>
                     </li>
                     {% if user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin:index' %}">Админка</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            👨‍💼 Админ
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Кабинет</a></li>
+                            <li><a class="dropdown-item" href="{% url 'user_approval_list' %}">Одобрение пользователей</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}">Django Админ-панель</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                     <li class="nav-item">

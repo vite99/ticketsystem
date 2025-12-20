@@ -3,7 +3,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.db import models
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
@@ -23,6 +24,11 @@ class TicketLoginView(LoginView):
 class TicketLogoutView(LogoutView):
     """Представление для выхода"""
     next_page = 'ticket_list'
+
+
+def is_admin(user):
+    """Проверка прав администратора"""
+    return user.is_staff or user.is_superuser
 
 
 @login_required(login_url='login')
@@ -169,9 +175,52 @@ def my_dashboard(request):
     return render(request, 'tickets/dashboard.html', context)
 
 
-def is_admin(user):
-    """Проверка прав администратора"""
-    return user.is_staff or user.is_superuser
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def admin_dashboard(request):
+    """Административный кабинет с общей статистикой"""
+    # Общая статистика
+    total_users = User.objects.count()
+    approved_users = UserProfile.objects.filter(is_approved=True).count()
+    pending_users = UserProfile.objects.filter(is_approved=False).exclude(user__is_staff=True).count()
+    
+    total_tickets = Ticket.objects.count()
+    open_tickets = Ticket.objects.filter(status__name__in=['open', 'in_progress', 'reopened']).count()
+    resolved_tickets = Ticket.objects.filter(status__name='resolved').count()
+    closed_tickets = Ticket.objects.filter(status__name='closed').count()
+    
+    # Тикеты по приоритету
+    critical_tickets = Ticket.objects.filter(priority__name='critical').count()
+    high_tickets = Ticket.objects.filter(priority__name='high').count()
+    
+    # Последние тикеты
+    recent_tickets = Ticket.objects.all()[:10]
+    
+    # Статистика по статусам
+    status_stats = Status.objects.all().annotate(
+        count=models.Count('ticket')
+    ).order_by('-count')
+    
+    # Самые активные пользователи
+    top_assignees = User.objects.annotate(
+        assigned_count=models.Count('assigned_tickets')
+    ).filter(assigned_count__gt=0).order_by('-assigned_count')[:5]
+    
+    context = {
+        'total_users': total_users,
+        'approved_users': approved_users,
+        'pending_users': pending_users,
+        'total_tickets': total_tickets,
+        'open_tickets': open_tickets,
+        'resolved_tickets': resolved_tickets,
+        'closed_tickets': closed_tickets,
+        'critical_tickets': critical_tickets,
+        'high_tickets': high_tickets,
+        'recent_tickets': recent_tickets,
+        'status_stats': status_stats,
+        'top_assignees': top_assignees,
+    }
+    return render(request, 'tickets/admin_dashboard.html', context)
 
 
 @login_required(login_url='login')
