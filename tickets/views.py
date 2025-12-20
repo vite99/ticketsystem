@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
-from .forms import TicketForm, CommentForm, RegistrationForm
+from .forms import TicketForm, TicketFormUser, CommentForm, RegistrationForm
 from django.urls import reverse_lazy
 
 
@@ -145,19 +145,30 @@ def ticket_detail(request, ticket_id):
 @login_required(login_url='login')
 def ticket_create(request):
     """Создание нового тикета"""
+    # Выбираем форму в зависимости от роли пользователя
+    form_class = TicketForm if request.user.is_staff else TicketFormUser
+    
     if request.method == 'POST':
-        form = TicketForm(request.POST)
+        form = form_class(request.POST)
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.creator = request.user
+            
+            # Для обычных пользователей устанавливаем статус "Открыт" и приоритет "Средний"
+            if not request.user.is_staff:
+                from django.db.models import Q
+                ticket.status = Status.objects.filter(name='open').first() or Status.objects.first()
+                ticket.priority = Priority.objects.filter(name='medium').first() or Priority.objects.first()
+            
             ticket.save()
-            form.save_m2m()  # Сохранить M2M отношения (теги)
+            if hasattr(form, 'save_m2m'):
+                form.save_m2m()  # Сохранить M2M отношения (теги) если они есть
             
             # Отправляем сообщение об успешном создании
             messages.success(request, f'✅ Тикет #{ticket.id} успешно создан!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
-        form = TicketForm()
+        form = form_class()
     
     return render(request, 'tickets/ticket_form.html', {'form': form, 'title': 'Создать тикет'})
 
@@ -171,8 +182,11 @@ def ticket_edit(request, ticket_id):
     if request.user != ticket.creator and request.user != ticket.assigned_to and not request.user.is_staff:
         return redirect('ticket_detail', ticket_id=ticket.id)
     
+    # Выбираем форму в зависимости от роли пользователя
+    form_class = TicketForm if request.user.is_staff else TicketFormUser
+    
     if request.method == 'POST':
-        form = TicketForm(request.POST, instance=ticket)
+        form = form_class(request.POST, instance=ticket)
         if form.is_valid():
             ticket = form.save()
             
@@ -180,7 +194,7 @@ def ticket_edit(request, ticket_id):
             messages.success(request, f'✅ Тикет #{ticket.id} успешно обновлён!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
-        form = TicketForm(instance=ticket)
+        form = form_class(instance=ticket)
     
     return render(request, 'tickets/ticket_form.html', {'form': form, 'ticket': ticket, 'title': 'Редактировать тикет'})
 

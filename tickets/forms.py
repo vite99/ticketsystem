@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 class TicketForm(forms.ModelForm):
-    """Форма для создания и редактирования тикета"""
+    """Форма для создания и редактирования тикета (для администраторов)"""
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
         required=False,
@@ -51,6 +51,34 @@ class TicketForm(forms.ModelForm):
             'status': 'Статус',
             'due_date': 'Срок выполнения',
             'estimated_hours': 'Расчетные часы',
+        }
+
+
+class TicketFormUser(forms.ModelForm):
+    """Упрощённая форма для обычных пользователей (без приоритета, назначения, часов и тегов)"""
+    
+    class Meta:
+        model = Ticket
+        fields = ['title', 'description', 'due_date']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Заголовок тикета'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Подробное описание проблемы'
+            }),
+            'due_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+        }
+        labels = {
+            'title': 'Заголовок',
+            'description': 'Описание',
+            'due_date': 'Срок выполнения',
         }
 
 
