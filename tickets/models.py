@@ -102,6 +102,7 @@ class Ticket(models.Model):
     closed_at = models.DateTimeField(null=True, blank=True, verbose_name='Закрыто')
     
     # Дополнительные поля
+    room = models.CharField(max_length=50, null=True, blank=True, verbose_name='Кабинет/Офис')
     due_date = models.DateTimeField(null=True, blank=True, verbose_name='Срок выполнения')
     estimated_hours = models.FloatField(null=True, blank=True, verbose_name='Расчетные часы')
     

@@ -14,7 +14,7 @@ class TicketForm(forms.ModelForm):
     
     class Meta:
         model = Ticket
-        fields = ['title', 'description', 'assigned_to', 'priority', 'status', 'tags', 'due_date', 'estimated_hours']
+        fields = ['title', 'description', 'assigned_to', 'priority', 'status', 'tags', 'room', 'due_date', 'estimated_hours']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -34,6 +34,10 @@ class TicketForm(forms.ModelForm):
             'status': forms.Select(attrs={
                 'class': 'form-control'
             }),
+            'room': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Номер кабинета или офиса (например: 101)'
+            }),
             'due_date': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local'
@@ -49,6 +53,7 @@ class TicketForm(forms.ModelForm):
             'assigned_to': 'Назначить',
             'priority': 'Приоритет',
             'status': 'Статус',
+            'room': 'Кабинет/Офис',
             'due_date': 'Срок выполнения',
             'estimated_hours': 'Расчетные часы',
         }
@@ -59,7 +64,7 @@ class TicketFormUser(forms.ModelForm):
     
     class Meta:
         model = Ticket
-        fields = ['title', 'description', 'priority', 'due_date']
+        fields = ['title', 'description', 'priority', 'room', 'due_date']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -73,6 +78,10 @@ class TicketFormUser(forms.ModelForm):
             'priority': forms.Select(attrs={
                 'class': 'form-control'
             }),
+            'room': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Номер кабинета или офиса (например: 101)'
+            }),
             'due_date': forms.DateTimeInput(attrs={
                 'class': 'form-control',
                 'type': 'datetime-local'
@@ -82,6 +91,7 @@ class TicketFormUser(forms.ModelForm):
             'title': 'Заголовок',
             'description': 'Описание',
             'priority': 'Приоритет',
+            'room': 'Кабинет/Офис',
             'due_date': 'Срок выполнения',
         }
 
