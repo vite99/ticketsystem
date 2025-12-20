@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
-from .forms import TicketForm, CommentForm
+from .forms import TicketForm, CommentForm, RegistrationForm
 from django.urls import reverse_lazy
 
 
@@ -24,6 +24,23 @@ class TicketLoginView(LoginView):
 class TicketLogoutView(LogoutView):
     """Представление для выхода"""
     next_page = 'ticket_list'
+
+
+def register_view(request):
+    """Регистрация нового пользователя"""
+    if request.user.is_authenticated:
+        return redirect('ticket_list')
+    
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, 'Регистрация успешна! Пожалуйста, войдите в систему.')
+            return redirect('login')
+    else:
+        form = RegistrationForm()
+    
+    return render(request, 'tickets/register.html', {'form': form})
 
 
 def is_admin(user):

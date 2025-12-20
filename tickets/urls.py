@@ -5,6 +5,7 @@ urlpatterns = [
     # Аутентификация
     path('login/', views.TicketLoginView.as_view(), name='login'),
     path('logout/', views.TicketLogoutView.as_view(), name='logout'),
+    path('register/', views.register_view, name='register'),
     
     # Тикеты
     path('', views.ticket_list, name='ticket_list'),
