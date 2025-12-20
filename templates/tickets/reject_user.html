@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Отклонить пользователя{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Отклонение пользователя</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h6>Информация о пользователе:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Имя пользователя:</strong> {{ user.username }}</li>
+                            <li><strong>Email:</strong> {{ user.email }}</li>
+                            <li><strong>Полное имя:</strong> {{ user.get_full_name }}</li>
+                            <li><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</li>
+                            {% if user.profile.department %}
+                            <li><strong>Отдел:</strong> {{ user.profile.department }}</li>
+                            {% endif %}
+                            {% if user.profile.phone %}
+                            <li><strong>Телефон:</strong> {{ user.profile.phone }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Внимание!</strong> После отклонения этот пользователь больше не сможет входить в систему.
+                    </div>
+                    
+                    <p>Вы уверены, что хотите отклонить этого пользователя?</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="reason">Причина отклонения (опционально):</label>
+                            <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Укажите причину отклонения..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Отклонить
+                            </button>
+                            <a href="{% url 'user_approval_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

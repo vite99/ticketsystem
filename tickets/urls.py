@@ -20,8 +20,8 @@ urlpatterns = [
     path('dashboard/', views.my_dashboard, name='dashboard'),
     
     # Управление одобрением пользователей (только для администраторов)
-    path('admin/users/', views.user_approval_list, name='user_approval_list'),
-    path('admin/users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
-    path('admin/users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
-    path('admin/users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
+    path('users/approval/', views.user_approval_list, name='user_approval_list'),
+    path('users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
+    path('users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
+    path('users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
 ]

@@ -57,7 +57,9 @@
                             <th>Название</th>
                             <th style="width: 120px;">Приоритет</th>
                             <th style="width: 120px;">Статус</th>
+                            {% if user.is_staff %}
                             <th style="width: 150px;">Создатель</th>
+                            {% endif %}
                             <th style="width: 150px;">Назначено</th>
                             <th style="width: 100px;">Дата</th>
                         </tr>
@@ -77,7 +79,9 @@
                                     {{ ticket.status.get_name_display }}
                                 </span>
                             </td>
+                            {% if user.is_staff %}
                             <td>{{ ticket.creator.get_full_name|default:ticket.creator.username }}</td>
+                            {% endif %}
                             <td>
                                 {% if ticket.assigned_to %}
                                     {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
@@ -89,7 +93,11 @@
                         </tr>
                         {% empty %}
                         <tr>
+                            {% if user.is_staff %}
                             <td colspan="7" class="text-center text-muted py-4">
+                            {% else %}
+                            <td colspan="6" class="text-center text-muted py-4">
+                            {% endif %}
                                 Тикеты не найдены
                             </td>
                         </tr>

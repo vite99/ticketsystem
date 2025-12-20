@@ -48,7 +48,24 @@ def is_admin(user):
     return user.is_staff or user.is_superuser
 
 
-@login_required(login_url='login')
+def is_approved(user):
+    """Проверка, одобрен ли пользователь"""
+    if user.is_staff or user.is_superuser:
+        return True
+    return hasattr(user, 'profile') and user.profile.is_approved
+
+
+def require_approval(view_func):
+    """Декоратор для проверки одобрения пользователя"""
+    @login_required(login_url='login')
+    def wrapped_view(request, *args, **kwargs):
+        if not is_approved(request.user):
+            return render(request, 'tickets/pending_approval.html')
+        return view_func(request, *args, **kwargs)
+    return wrapped_view
+
+
+@require_approval
 def ticket_list(request):
     """Список всех тикетов с фильтрацией"""
     tickets = Ticket.objects.all()
@@ -244,8 +261,17 @@ def admin_dashboard(request):
 @user_passes_test(is_admin)
 def user_approval_list(request):
     """Список пользователей, ожидающих одобрения (для администраторов)"""
+    # Получаем всех пользователей и обеспечиваем наличие профиля
+    all_users = User.objects.all()
+    
+    # Убедимся, что у каждого пользователя есть профиль
+    for user in all_users:
+        if not hasattr(user, 'profile'):
+            UserProfile.objects.create(user=user)
+    
+    # Теперь фильтруем по статусу одобрения (исключая штат)
     pending_users = User.objects.filter(profile__is_approved=False).exclude(is_staff=True)
-    approved_users = User.objects.filter(profile__is_approved=True)
+    approved_users = User.objects.filter(profile__is_approved=True).exclude(is_staff=True)
     
     context = {
         'pending_users': pending_users,
