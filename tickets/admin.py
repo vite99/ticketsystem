@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Priority, Status, Tag, Ticket, Comment, Attachment, TicketHistory
+from .models import Priority, Status, Tag, Ticket, Comment, Attachment, TicketHistory, UserProfile
 
 
 @admin.register(Priority)
@@ -112,3 +112,24 @@ class TicketHistoryAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_approved', 'approved_by', 'approved_at', 'department')
+    list_filter = ('is_approved', 'approved_at')
+    search_fields = ('user__username', 'user__email', 'department')
+    readonly_fields = ('approved_at',)
+    
+    fieldsets = (
+        ('Пользователь', {
+            'fields': ('user',)
+        }),
+        ('Одобрение', {
+            'fields': ('is_approved', 'approved_by', 'approved_at')
+        }),
+        ('Информация', {
+            'fields': ('department', 'phone')
+        }),
+    )
+

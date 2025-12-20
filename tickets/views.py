@@ -1,11 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.core.paginator import Paginator
-from .models import Ticket, Comment, Status, Priority, Tag
+from django.contrib import messages
+from django.utils import timezone
+from django.contrib.auth.models import User
+from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
 from .forms import TicketForm, CommentForm
 from django.urls import reverse_lazy
 
@@ -164,3 +167,75 @@ def my_dashboard(request):
         'total_tickets': created_tickets.count() + assigned_tickets.count(),
     }
     return render(request, 'tickets/dashboard.html', context)
+
+
+def is_admin(user):
+    """Проверка прав администратора"""
+    return user.is_staff or user.is_superuser
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def user_approval_list(request):
+    """Список пользователей, ожидающих одобрения (для администраторов)"""
+    pending_users = User.objects.filter(profile__is_approved=False).exclude(is_staff=True)
+    approved_users = User.objects.filter(profile__is_approved=True)
+    
+    context = {
+        'pending_users': pending_users,
+        'approved_users': approved_users,
+    }
+    return render(request, 'tickets/user_approval_list.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def approve_user(request, user_id):
+    """Одобрить пользователя"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        user.profile.is_approved = True
+        user.profile.approved_by = request.user
+        user.profile.approved_at = timezone.now()
+        user.profile.save()
+        
+        messages.success(request, f'Пользователь {user.username} успешно одобрен.')
+        return redirect('user_approval_list')
+    
+    context = {'user': user}
+    return render(request, 'tickets/approve_user.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def reject_user(request, user_id):
+    """Отклонить пользователя"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        user.is_active = False
+        user.save()
+        messages.success(request, f'Пользователь {user.username} деактивирован.')
+        return redirect('user_approval_list')
+    
+    context = {'user': user}
+    return render(request, 'tickets/reject_user.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def revoke_approval(request, user_id):
+    """Отозвать одобрение пользователя"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        user.profile.is_approved = False
+        user.profile.approved_by = None
+        user.profile.approved_at = None
+        user.profile.save()
+        messages.success(request, f'Одобрение пользователя {user.username} отозвано.')
+        return redirect('user_approval_list')
+    
+    context = {'user': user}
+    return render(request, 'tickets/revoke_approval.html', context)

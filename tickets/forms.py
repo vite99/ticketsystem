@@ -1,5 +1,6 @@
 from django import forms
-from .models import Ticket, Comment, Priority, Status, Tag
+from .models import Ticket, Comment, Priority, Status, Tag, UserProfile
+from django.contrib.auth.models import User
 
 
 class TicketForm(forms.ModelForm):
@@ -72,3 +73,50 @@ class CommentForm(forms.ModelForm):
             'content': 'Комментарий',
             'is_internal': 'Внутренний комментарий (не видно клиентам)',
         }
+
+
+class UserProfileForm(forms.ModelForm):
+    """Форма для редактирования профиля пользователя"""
+    class Meta:
+        model = UserProfile
+        fields = ['department', 'phone']
+        widgets = {
+            'department': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Название отдела'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Телефон'
+            }),
+        }
+        labels = {
+            'department': 'Отдел',
+            'phone': 'Телефон',
+        }
+
+
+class UserApprovalForm(forms.Form):
+    """Форма для одобрения пользователей администратором"""
+    reason = forms.CharField(
+        label='Причина одобрения',
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Дополнительные комментарии (опционально)'
+        })
+    )
+
+
+class UserRejectionForm(forms.Form):
+    """Форма для отклонения пользователей администратором"""
+    reason = forms.CharField(
+        label='Причина отклонения',
+        required=True,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Укажите причину отклонения'
+        })
+    )

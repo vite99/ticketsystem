@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Отозвать одобрение{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Отозвание одобрения</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>Информация о пользователе:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Имя пользователя:</strong> {{ user.username }}</li>
+                            <li><strong>Email:</strong> {{ user.email }}</li>
+                            <li><strong>Полное имя:</strong> {{ user.get_full_name }}</li>
+                            <li><strong>Одобрен:</strong> {{ user.profile.approved_at|date:"d.m.Y H:i" }}</li>
+                            <li><strong>Одобрен пользователем:</strong> {{ user.profile.approved_by.get_full_name }}</li>
+                        </ul>
+                    </div>
+                    
+                    <p>Вы уверены, что хотите отозвать одобрение этого пользователя? Пользователь останется в системе, но потребуется переодобрение.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-undo"></i> Отозвать одобрение
+                            </button>
+                            <a href="{% url 'user_approval_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
