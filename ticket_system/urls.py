@@ -18,8 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from tickets.views import admin_dashboard
 
 urlpatterns = [
+    # Админ кабинет (должен быть перед admin/)
+    path('admin/dashboard/', admin_dashboard, name='admin_dashboard'),
+    # Django admin
     path('admin/', admin.site.urls),
     path('tickets/', include('tickets.urls')),
     path('', include('tickets.urls')),  # Делает корневой путь равным /tickets/

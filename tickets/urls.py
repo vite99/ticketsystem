@@ -23,7 +23,4 @@ urlpatterns = [
     path('admin/users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
     path('admin/users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
     path('admin/users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
-    
-    # Административный кабинет
-    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
 ]
