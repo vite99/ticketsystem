@@ -46,7 +46,7 @@
 </div>
 
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-{% if user.is_staff %}6{% else %}12{% endif %}">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">📋 Созданные мной тикеты</h5>
@@ -75,6 +75,7 @@
         </div>
     </div>
 
+    {% if user.is_staff %}
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
@@ -103,6 +104,8 @@
             </div>
         </div>
     </div>
+    {% endif %}
+
 </div>
 
 <div class="row mt-4">
