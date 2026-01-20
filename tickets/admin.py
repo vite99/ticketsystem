@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Priority, Status, Tag, Ticket, Comment, Attachment, TicketHistory, UserProfile
+from .models import Priority, Status, Tag, Workstation, Ticket, Comment, Attachment, TicketHistory, UserProfile
 
 
 @admin.register(Priority)
@@ -19,6 +19,14 @@ class StatusAdmin(admin.ModelAdmin):
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'color')
     search_fields = ('name',)
+
+
+@admin.register(Workstation)
+class WorkstationAdmin(admin.ModelAdmin):
+    list_display = ('room', 'number', 'location')
+    list_filter = ('room',)
+    search_fields = ('room', 'number', 'location')
+    ordering = ('room', 'number')
 
 
 class CommentInline(admin.TabularInline):
@@ -54,6 +62,9 @@ class TicketAdmin(admin.ModelAdmin):
         }),
         ('Назначение и статус', {
             'fields': ('assigned_to', 'priority', 'status')
+        }),
+        ('Местоположение', {
+            'fields': ('workstation',)
         }),
         ('Теги и сроки', {
             'fields': ('tags', 'due_date', 'estimated_hours')

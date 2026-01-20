@@ -4,100 +4,413 @@
 
 {% block extra_css %}
 <style>
-    .admin-stat-card {
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .admin-header h1 {
+        font-size: 2rem;
+        margin: 0;
+    }
+
+    .admin-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .stat-card {
         background: white;
-        border-radius: 10px;
-        padding: 20px;
+        border-radius: 12px;
+        padding: 24px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #667eea;
+        box-shadow: var(--shadow-sm);
+        border-left: 4px solid var(--primary);
+        transition: all 0.3s ease;
     }
-    .admin-stat-card.warning {
-        border-left-color: #ffc107;
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
     }
-    .admin-stat-card.danger {
+
+    .stat-card.danger {
         border-left-color: #dc3545;
     }
-    .admin-stat-card.success {
+
+    .stat-card.warning {
+        border-left-color: #ffc107;
+    }
+
+    .stat-card.success {
         border-left-color: #28a745;
     }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+
     .stat-number {
         font-size: 2.5rem;
         font-weight: 700;
-        color: #667eea;
-        margin: 10px 0;
+        color: var(--primary);
+        margin: 12px 0 8px;
     }
-    .admin-stat-card.warning .stat-number {
-        color: #ffc107;
-    }
-    .admin-stat-card.danger .stat-number {
+
+    .stat-card.danger .stat-number {
         color: #dc3545;
     }
-    .admin-stat-card.success .stat-number {
+
+    .stat-card.warning .stat-number {
+        color: #ffc107;
+    }
+
+    .stat-card.success .stat-number {
         color: #28a745;
     }
-    .stat-label {
-        font-size: 0.9rem;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+
+    .stat-subtitle {
+        font-size: 0.85rem;
+        color: #718096;
     }
-    .admin-menu {
+
+    .menu-card {
         background: white;
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm);
     }
-    .admin-menu-item {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
+
+    .menu-item {
+        padding: 16px;
+        border-bottom: 1px solid #e0e0e0;
         text-decoration: none;
-        color: #333;
+        color: inherit;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        transition: background-color 0.3s;
+        transition: all 0.3s ease;
     }
-    .admin-menu-item:last-child {
+
+    .menu-item:last-child {
         border-bottom: none;
     }
-    .admin-menu-item:hover {
+
+    .menu-item:hover {
         background-color: #f8f9fa;
+        padding-left: 20px;
     }
-    .admin-menu-item i {
-        width: 30px;
-        text-align: center;
-        font-size: 1.2rem;
-        color: #667eea;
+
+    .menu-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 12px;
+        font-size: 1.1rem;
+    }
+
+    .menu-item-content {
+        flex-grow: 1;
+    }
+
+    .menu-item-title {
+        font-weight: 600;
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .menu-item-arrow {
+        color: #cbd5e0;
+        transition: all 0.3s ease;
+    }
+
+    .menu-item:hover .menu-item-arrow {
+        color: var(--primary);
+        transform: translateX(4px);
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .recent-ticket-row {
+        padding: 12px;
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+
+    .recent-ticket-row:last-child {
+        border-bottom: none;
+    }
+
+    .recent-ticket-row:hover {
+        background-color: #f8f9fa;
+        padding-left: 16px;
+    }
+
+    .user-card-item {
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .user-card-item:hover {
+        background: #f0f3ff;
+        border-left: 3px solid var(--primary);
+        padding-left: 19px;
+    }
+
+    .grid-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">👨‍💼 Административный кабинет</h1>
-        <span class="badge bg-info">Администратор: {{ user.get_full_name|default:user.username }}</span>
+<div class="container-fluid px-0">
+    <!-- Заголовок -->
+    <div class="admin-header">
+        <div>
+            <h1>👨‍💼 Административный кабинет</h1>
+            <p class="text-muted mb-0">Управление системой и мониторинг</p>
+        </div>
+        <div class="admin-badge">
+            <i class="fas fa-shield-alt"></i> {{ user.get_full_name|default:user.username }}
+        </div>
     </div>
 
     <!-- Основные статистики -->
-    <div class="row mb-4">
-        <div class="col-md-6 col-lg-3">
-            <div class="admin-stat-card">
-                <div class="stat-label">Всего тикетов</div>
-                <div class="stat-number">{{ total_tickets }}</div>
-                <small class="text-muted">
-                    <i class="fas fa-arrow-up text-success"></i> В работе: {{ open_tickets }}
-                </small>
+    <div class="grid-stats mb-5">
+        <div class="stat-card">
+            <div class="stat-label">
+                <i class="fas fa-ticket-alt"></i> Всего тикетов
+            </div>
+            <div class="stat-number">{{ total_tickets }}</div>
+            <div class="stat-subtitle">
+                <i class="fas fa-play-circle text-info"></i> В работе: {{ open_tickets }}
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
-            <div class="admin-stat-card danger">
-                <div class="stat-label">Критических</div>
-                <div class="stat-number">{{ critical_tickets }}</div>
-                <small class="text-muted">Требуют срочного внимания</small>
+
+        <div class="stat-card danger">
+            <div class="stat-label">
+                <i class="fas fa-exclamation-triangle"></i> Критических
+            </div>
+            <div class="stat-number">{{ critical_tickets }}</div>
+            <div class="stat-subtitle">Требуют срочного внимания</div>
+        </div>
+
+        <div class="stat-card warning">
+            <div class="stat-label">
+                <i class="fas fa-hourglass-half"></i> На одобрение
+            </div>
+            <div class="stat-number">{{ pending_users }}</div>
+            <div class="stat-subtitle">Новых пользователей</div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-label">
+                <i class="fas fa-users"></i> Всего пользователей
+            </div>
+            <div class="stat-number">{{ total_users }}</div>
+            <div class="stat-subtitle">Одобрено: {{ approved_users }}</div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка -->
+        <div class="col-lg-4 mb-4">
+            <!-- Управление -->
+            <h5 class="section-title">Управление</h5>
+            <div class="menu-card mb-4">
+                <a href="{% url 'user_approval_list' %}" class="menu-item">
+                    <div class="menu-item-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="menu-item-content">
+                        <p class="menu-item-title">Одобрение пользователей</p>
+                        <small class="text-muted">Управление доступом</small>
+                    </div>
+                    <div class="menu-item-arrow">
+                        {% if pending_users %}
+                        <span class="badge bg-warning" style="margin-right: 8px;">{{ pending_users }}</span>
+                        {% endif %}
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+
+                <a href="{% url 'ticket_list' %}" class="menu-item">
+                    <div class="menu-item-icon" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="menu-item-content">
+                        <p class="menu-item-title">Все тикеты</p>
+                        <small class="text-muted">Управление тикетами</small>
+                    </div>
+                    <div class="menu-item-arrow">
+                        <span class="badge bg-primary" style="margin-right: 8px;">{{ total_tickets }}</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+
+                <a href="{% url 'admin:index' %}" class="menu-item">
+                    <div class="menu-item-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="menu-item-content">
+                        <p class="menu-item-title">Django Админ-панель</p>
+                        <small class="text-muted">Продвинутые настройки</small>
+                    </div>
+                    <div class="menu-item-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Статусы -->
+            <h5 class="section-title">Статусы тикетов</h5>
+            <div class="menu-card">
+                {% for status in status_stats %}
+                <div class="user-card-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge" style="background-color: {{ status.color }}; color: white; padding: 6px 12px;">
+                                {{ status.get_name_display }}
+                            </span>
+                        </span>
+                        <span class="badge bg-secondary" style="padding: 6px 12px;">{{ status.count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
+
+        <!-- Правая колонка -->
+        <div class="col-lg-8">
+            <!-- Статистика -->
+            <h5 class="section-title">Статистика тикетов</h5>
+            <div class="grid-stats mb-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-play-circle text-info" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                        <h6 class="text-muted mb-2">Открытые</h6>
+                        <div style="font-size: 2rem; font-weight: 700; color: #17a2b8;">{{ open_tickets }}</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-check-circle text-success" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                        <h6 class="text-muted mb-2">Решено</h6>
+                        <div style="font-size: 2rem; font-weight: 700; color: #28a745;">{{ resolved_tickets }}</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-lock text-secondary" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                        <h6 class="text-muted mb-2">Закрыто</h6>
+                        <div style="font-size: 2rem; font-weight: 700; color: #6c757d;">{{ closed_tickets }}</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-circle text-danger" style="font-size: 2rem; margin-bottom: 12px; display: block;"></i>
+                        <h6 class="text-muted mb-2">Критические</h6>
+                        <div style="font-size: 2rem; font-weight: 700; color: #dc3545;">{{ critical_tickets }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Топ ответственные -->
+            <h5 class="section-title">Топ ответственных сотрудников</h5>
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if top_assignees %}
+                        {% for user in top_assignees %}
+                        <div class="user-card-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="mb-1" style="font-weight: 600;">{{ user.get_full_name|default:user.username }}</p>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                                <span class="badge bg-info" style="padding: 6px 12px;">{{ user.assigned_count }} тикетов</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; padding: 40px 20px; color: #718096;">
+                            <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                            <p>Нет назначенных тикетов</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Последние тикеты -->
+            <h5 class="section-title">Последние тикеты</h5>
+            <div class="card">
+                <div class="card-body p-0">
+                    {% if recent_tickets %}
+                        {% for ticket in recent_tickets %}
+                        <a href="{% url 'ticket_detail' ticket.id %}" class="recent-ticket-row d-block text-decoration-none">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong style="color: var(--dark);">#{{ ticket.id }} — {{ ticket.title|truncatewords:8 }}</strong>
+                                    <div style="font-size: 0.85rem; color: #718096;">
+                                        <i class="fas fa-user"></i> {{ ticket.creator.username }}
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ ticket.created_at|date:"d.m.Y" }}</small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <span class="badge" style="background-color: {{ ticket.status.color }}; color: white;">
+                                    {{ ticket.status.get_name_display }}
+                                </span>
+                                <span class="badge priority-{{ ticket.priority.name }}">
+                                    {{ ticket.priority.get_name_display }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; padding: 40px 20px; color: #718096;">
+                            <p>Нет тикетов</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
         <div class="col-md-6 col-lg-3">
             <div class="admin-stat-card warning">
                 <div class="stat-label">Ожидающие</div>

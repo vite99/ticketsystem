@@ -2,116 +2,249 @@
 
 {% block title %}Мой кабинет - Ticket System{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        border-left: 4px solid var(--primary);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card.warning {
+        border-left-color: #ffc107;
+    }
+    
+    .stat-card.success {
+        border-left-color: #28a745;
+    }
+    
+    .stat-card.profile {
+        border-left-color: #17a2b8;
+    }
+    
+    .stat-label {
+        color: #718096;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 12px 0;
+    }
+    
+    .stat-card.warning .stat-number {
+        color: #ffc107;
+    }
+    
+    .stat-card.success .stat-number {
+        color: #28a745;
+    }
+    
+    .stat-card.profile .stat-number {
+        color: #17a2b8;
+    }
+    
+    .ticket-item {
+        padding: 16px;
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .ticket-item:last-child {
+        border-bottom: none;
+    }
+    
+    .ticket-item:hover {
+        background-color: #f8f9fa;
+        padding-left: 20px;
+    }
+    
+    .ticket-item a {
+        color: inherit;
+        text-decoration: none;
+    }
+    
+    .ticket-title {
+        font-weight: 600;
+        color: var(--dark);
+        margin-bottom: 6px;
+    }
+    
+    .ticket-description {
+        color: #718096;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+    
+    .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #718096;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .page-header {
+        margin-bottom: 40px;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .page-header p {
+        color: #718096;
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <h1 class="mb-4">👤 Мой кабинет</h1>
+<div class="container-fluid px-0">
+    <div class="page-header mb-5">
+        <h1>👤 Мой кабинет</h1>
+        <p>Добро пожаловать, <strong>{{ user.get_full_name|default:user.username }}</strong></p>
     </div>
-</div>
 
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Всего тикетов</h5>
-                <h2 class="text-primary">{{ total_tickets }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Открыто</h5>
-                <h2 class="text-warning">{{ open_tickets }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Решено</h5>
-                <h2 class="text-success">{{ resolved_tickets }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Профиль</h5>
-                <p class="text-muted">{{ user.get_full_name|default:user.username }}</p>
-                <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger">Выход</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-{% if user.is_staff %}6{% else %}12{% endif %}">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">📋 Созданные мной тикеты</h5>
-            </div>
-            <div class="card-body p-0">
-                {% if created_tickets %}
-                <div class="list-group list-group-flush">
-                    {% for ticket in created_tickets %}
-                    <a href="{% url 'ticket_detail' ticket.id %}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">#{{ ticket.id }} - {{ ticket.title }}</h6>
-                            <small>{{ ticket.created_at|date:"d.m.Y" }}</small>
-                        </div>
-                        <p class="mb-1 text-muted text-truncate">{{ ticket.description|truncatewords:10 }}</p>
-                        <div>
-                            <span class="badge priority-{{ ticket.priority.name }}">{{ ticket.priority.get_name_display }}</span>
-                            <span class="badge" style="background-color: {{ ticket.status.color }};">{{ ticket.status.get_name_display }}</span>
-                        </div>
-                    </a>
-                    {% endfor %}
+    <!-- Статистика -->
+    <div class="row mb-5">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-label">
+                    <i class="fas fa-ticket-alt"></i> Всего тикетов
                 </div>
-                {% else %}
-                <p class="text-muted p-3">Вы еще не создали ни одного тикета</p>
-                {% endif %}
+                <div class="stat-number">{{ total_tickets }}</div>
+                <small class="text-muted">за все время</small>
             </div>
         </div>
-    </div>
-
-    {% if user.is_staff %}
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">🎯 Назначенные мне тикеты</h5>
-            </div>
-            <div class="card-body p-0">
-                {% if assigned_tickets %}
-                <div class="list-group list-group-flush">
-                    {% for ticket in assigned_tickets %}
-                    <a href="{% url 'ticket_detail' ticket.id %}" class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">#{{ ticket.id }} - {{ ticket.title }}</h6>
-                            <small>{{ ticket.created_at|date:"d.m.Y" }}</small>
-                        </div>
-                        <p class="mb-1 text-muted text-truncate">{{ ticket.description|truncatewords:10 }}</p>
-                        <div>
-                            <span class="badge priority-{{ ticket.priority.name }}">{{ ticket.priority.get_name_display }}</span>
-                            <span class="badge" style="background-color: {{ ticket.status.color }};">{{ ticket.status.get_name_display }}</span>
-                        </div>
-                    </a>
-                    {% endfor %}
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="stat-card warning">
+                <div class="stat-label">
+                    <i class="fas fa-clock"></i> Открыто
                 </div>
-                {% else %}
-                <p class="text-muted p-3">Вам не назначено ни одного тикета</p>
-                {% endif %}
+                <div class="stat-number">{{ open_tickets }}</div>
+                <small class="text-muted">в работе</small>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="stat-card success">
+                <div class="stat-label">
+                    <i class="fas fa-check-circle"></i> Решено
+                </div>
+                <div class="stat-number">{{ resolved_tickets }}</div>
+                <small class="text-muted">завершено</small>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="stat-card profile">
+                <div class="stat-label">
+                    <i class="fas fa-user-circle"></i> Профиль
+                </div>
+                <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger mt-3">
+                    <i class="fas fa-sign-out-alt"></i> Выход
+                </a>
             </div>
         </div>
     </div>
-    {% endif %}
 
-</div>
+    <!-- Тикеты -->
+    <div class="row">
+        <div class="col-md-{% if user.is_staff %}6{% else %}12{% endif %}">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-pencil-alt"></i> Созданные мной тикеты
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if created_tickets %}
+                        {% for ticket in created_tickets %}
+                        <a href="{% url 'ticket_detail' ticket.id %}" class="ticket-item d-block">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="ticket-title">#{{ ticket.id }} — {{ ticket.title }}</div>
+                                <small class="text-muted">{{ ticket.created_at|date:"d.m.Y" }}</small>
+                            </div>
+                            <p class="ticket-description">{{ ticket.description|truncatewords:12 }}</p>
+                            <div>
+                                <span class="badge priority-{{ ticket.priority.name }}">{{ ticket.priority.get_name_display }}</span>
+                                <span class="badge" style="background-color: {{ ticket.status.color }}; color: white;">{{ ticket.status.get_name_display }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-inbox" style="font-size: 48px; color: #cbd5e0; margin-bottom: 15px; display: block;"></i>
+                            <p class="mb-0">Вы еще не создали ни одного тикета</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-<div class="row mt-4">
-    <div class="col-md-12 text-center">
-        <a href="{% url 'ticket_list' %}" class="btn btn-primary btn-lg">Посмотреть все тикеты</a>
-        <a href="{% url 'ticket_create' %}" class="btn btn-success btn-lg">Создать новый тикет</a>
+        {% if user.is_staff %}
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i> Назначенные мне тикеты
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if assigned_tickets %}
+                        {% for ticket in assigned_tickets %}
+                        <a href="{% url 'ticket_detail' ticket.id %}" class="ticket-item d-block">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="ticket-title">#{{ ticket.id }} — {{ ticket.title }}</div>
+                                <small class="text-muted">{{ ticket.created_at|date:"d.m.Y" }}</small>
+                            </div>
+                            <p class="ticket-description">{{ ticket.description|truncatewords:12 }}</p>
+                            <div>
+                                <span class="badge priority-{{ ticket.priority.name }}">{{ ticket.priority.get_name_display }}</span>
+                                <span class="badge" style="background-color: {{ ticket.status.color }}; color: white;">{{ ticket.status.get_name_display }}</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-check-double" style="font-size: 48px; color: #cbd5e0; margin-bottom: 15px; display: block;"></i>
+                            <p class="mb-0">Вам не назначено ни одного тикета</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Кнопки действия -->
+    <div class="action-buttons">
+        <a href="{% url 'ticket_list' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-list"></i> Все тикеты
+        </a>
+        <a href="{% url 'ticket_create' %}" class="btn btn-success btn-lg">
+            <i class="fas fa-plus-circle"></i> Создать тикет
+        </a>
     </div>
 </div>
 {% endblock %}

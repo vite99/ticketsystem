@@ -78,6 +78,39 @@ class Tag(models.Model):
         return self.name
 
 
+class Workstation(models.Model):
+    """Рабочее место (компьютер) в кабинете"""
+    room = models.CharField(max_length=100, verbose_name='Кабинет/Офис')
+    number = models.CharField(max_length=50, verbose_name='Номер/Описание', 
+                             help_text='Например: "ПК-1", "Левый стол", "Монитор 3" и т.д.')
+    location = models.CharField(max_length=255, blank=True, verbose_name='Подробное местоположение',
+                               help_text='Опционально: уточнённое место расположения')
+    
+    class Meta:
+        verbose_name = 'Рабочее место'
+        verbose_name_plural = 'Рабочие места'
+        ordering = ['room', 'number']
+        unique_together = [('room', 'number')]
+    
+    def __str__(self):
+        return f"{self.room} - {self.number}"
+
+
+class Tag(models.Model):
+    """Тег для категоризации тикетов"""
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    color = models.CharField(max_length=7, default='#0066cc')
+    
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+        ordering = ['name']
+    
+    def __str__(self):
+        return self.name
+
+
 class Ticket(models.Model):
     """Главная модель тикета"""
     title = models.CharField(max_length=255, verbose_name='Заголовок')
@@ -103,6 +136,8 @@ class Ticket(models.Model):
     
     # Дополнительные поля
     room = models.CharField(max_length=50, null=True, blank=True, verbose_name='Кабинет/Офис')
+    workstation = models.ForeignKey(Workstation, on_delete=models.SET_NULL, null=True, blank=True, 
+                                    related_name='tickets', verbose_name='Рабочее место/Компьютер')
     due_date = models.DateTimeField(null=True, blank=True, verbose_name='Срок выполнения')
     estimated_hours = models.FloatField(null=True, blank=True, verbose_name='Расчетные часы')
     
