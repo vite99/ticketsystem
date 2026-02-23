@@ -21,6 +21,7 @@ urlpatterns = [
     
     # Личный кабинет
     path('dashboard/', views.my_dashboard, name='dashboard'),
+    path('settings/notifications/', views.notification_settings, name='notification_settings'),
     
     # Управление одобрением пользователей (только для администраторов)
     path('users/approval/', views.user_approval_list, name='user_approval_list'),

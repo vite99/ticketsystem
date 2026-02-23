@@ -10,11 +10,25 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.db.utils import OperationalError, ProgrammingError
 from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
-from .forms import TicketForm, TicketFormUser, CommentForm, RegistrationForm
+from .forms import (
+    TicketForm,
+    TicketFormUser,
+    CommentForm,
+    RegistrationForm,
+    NotificationSettingsForm,
+    ApprovalProfileEditForm,
+)
 from django.urls import reverse, reverse_lazy
 
 COMPLETED_STATUS_NAMES = ['resolved', 'closed']
+USER_URGENCY_TO_PRIORITY = {
+    Ticket.URGENCY_LOW: Priority.LOW,
+    Ticket.URGENCY_NORMAL: Priority.MEDIUM,
+    Ticket.URGENCY_URGENT: Priority.HIGH,
+    Ticket.URGENCY_CRITICAL: Priority.CRITICAL,
+}
 
 
 class TicketLoginView(LoginView):
@@ -282,8 +296,13 @@ def ticket_create(request):
             
             # Для обычных пользователей устанавливаем статус "Открыт"
             if not request.user.is_staff:
-                from django.db.models import Q
                 ticket.status = Status.objects.filter(name='open').first() or Status.objects.first()
+                priority_name = USER_URGENCY_TO_PRIORITY.get(ticket.user_urgency, Priority.MEDIUM)
+                ticket.priority = (
+                    Priority.objects.filter(name=priority_name).first()
+                    or Priority.objects.filter(name=Priority.MEDIUM).first()
+                    or Priority.objects.first()
+                )
             
             ticket.save()
             if hasattr(form, 'save_m2m'):
@@ -313,7 +332,17 @@ def ticket_edit(request, ticket_id):
     if request.method == 'POST':
         form = form_class(request.POST, instance=ticket)
         if form.is_valid():
-            ticket = form.save()
+            ticket = form.save(commit=False)
+            if not request.user.is_staff:
+                priority_name = USER_URGENCY_TO_PRIORITY.get(ticket.user_urgency, Priority.MEDIUM)
+                ticket.priority = (
+                    Priority.objects.filter(name=priority_name).first()
+                    or Priority.objects.filter(name=Priority.MEDIUM).first()
+                    or Priority.objects.first()
+                )
+            ticket.save()
+            if hasattr(form, 'save_m2m'):
+                form.save_m2m()
             
             # Отправляем сообщение об успешном обновлении
             messages.success(request, f'✅ Тикет #{ticket.id} успешно обновлён!')
@@ -380,6 +409,22 @@ def my_dashboard(request):
         'total_tickets': created_tickets.count() + assigned_tickets.count(),
     }
     return render(request, 'tickets/dashboard.html', context)
+
+
+@require_approval
+def notification_settings(request):
+    """Пользовательские настройки уведомлений."""
+    profile = request.user.profile
+    if request.method == 'POST':
+        form = NotificationSettingsForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Настройки уведомлений сохранены.')
+            return redirect('notification_settings')
+    else:
+        form = NotificationSettingsForm(instance=profile)
+
+    return render(request, 'tickets/notification_settings.html', {'form': form})
 
 
 @login_required(login_url='login')
@@ -458,17 +503,28 @@ def user_approval_list(request):
 def approve_user(request, user_id):
     """Одобрить пользователя"""
     user = get_object_or_404(User, id=user_id)
-    
+    profile = user.profile
+
     if request.method == 'POST':
-        user.profile.is_approved = True
-        user.profile.approved_by = request.user
-        user.profile.approved_at = timezone.now()
-        user.profile.save()
-        
-        messages.success(request, f'Пользователь {user.username} успешно одобрен.')
-        return redirect('user_approval_list')
-    
-    context = {'user': user}
+        form = ApprovalProfileEditForm(request.POST, instance=profile)
+        action = request.POST.get('action')
+        if form.is_valid():
+            updated_profile = form.save(commit=False)
+            if action == 'approve':
+                updated_profile.is_approved = True
+                updated_profile.approved_by = request.user
+                updated_profile.approved_at = timezone.now()
+                updated_profile.save()
+                messages.success(request, f'Пользователь {user.username} успешно одобрен.')
+                return redirect('user_approval_list')
+
+            updated_profile.save()
+            messages.success(request, f'Данные заявки пользователя {user.username} обновлены.')
+            return redirect('approve_user', user_id=user.id)
+    else:
+        form = ApprovalProfileEditForm(instance=profile)
+
+    context = {'user': user, 'form': form}
     return render(request, 'tickets/approve_user.html', context)
 
 
@@ -513,6 +569,12 @@ def get_new_tickets(request):
 
     if not request.user.is_staff:
         return JsonResponse({'success': True, 'tickets': [], 'count': 0})
+    try:
+        if hasattr(request.user, 'profile') and not request.user.profile.notify_browser:
+            return JsonResponse({'success': True, 'tickets': [], 'count': 0})
+    except (OperationalError, ProgrammingError):
+        # Миграции профиля еще не применены: не блокируем endpoint.
+        pass
     
     # Получить ID последнего просмотренного тикета из параметров
     try:

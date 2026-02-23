@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.validators import FileExtensionValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .notifications import send_ticket_notifications
 
 
 class Priority(models.Model):
@@ -113,28 +114,40 @@ class Tag(models.Model):
 
 class Ticket(models.Model):
     """Главная модель тикета"""
+    URGENCY_LOW = 'low'
+    URGENCY_NORMAL = 'normal'
+    URGENCY_URGENT = 'urgent'
+    URGENCY_CRITICAL = 'critical'
+
+    USER_URGENCY_CHOICES = [
+        (URGENCY_LOW, 'Низкая'),
+        (URGENCY_NORMAL, 'Обычная'),
+        (URGENCY_URGENT, 'Срочно'),
+        (URGENCY_CRITICAL, 'Критично'),
+    ]
     title = models.CharField(max_length=255, verbose_name='Заголовок')
     description = models.TextField(verbose_name='Описание')
     
-    # Отношения
+    # РћС‚РЅРѕС€РµРЅРёСЏ
     creator = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_tickets', verbose_name='Создатель')
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
                                      related_name='assigned_tickets', verbose_name='Назначено')
     
-    # Классификация
+    # РљР»Р°СЃСЃРёС„РёРєР°С†РёСЏ
     priority = models.ForeignKey(Priority, on_delete=models.SET_NULL, null=True, default=Priority.MEDIUM, 
                                   verbose_name='Приоритет')
+    user_urgency = models.CharField(max_length=20, choices=USER_URGENCY_CHOICES, default=URGENCY_NORMAL, verbose_name='Запрошенная срочность')
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, default=Status.OPEN, 
                                verbose_name='Статус')
     tags = models.ManyToManyField(Tag, blank=True, verbose_name='Теги')
     
-    # Временные метки
+    # Р’СЂРµРјРµРЅРЅС‹Рµ РјРµС‚РєРё
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлено')
     resolved_at = models.DateTimeField(null=True, blank=True, verbose_name='Решено')
     closed_at = models.DateTimeField(null=True, blank=True, verbose_name='Закрыто')
     
-    # Дополнительные поля
+    # Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ
     room = models.CharField(max_length=50, null=True, blank=True, verbose_name='Кабинет/Офис')
     workstation = models.ForeignKey(Workstation, on_delete=models.SET_NULL, null=True, blank=True, 
                                     related_name='tickets', verbose_name='Рабочее место/Компьютер')
@@ -155,10 +168,10 @@ class Ticket(models.Model):
         return f"#{self.id} - {self.title}"
     
     def save(self, *args, **kwargs):
-        # Установить resolved_at когда статус изменяется на RESOLVED
+        # РЈСЃС‚Р°РЅРѕРІРёС‚СЊ resolved_at РєРѕРіРґР° СЃС‚Р°С‚СѓСЃ РёР·РјРµРЅСЏРµС‚СЃСЏ РЅР° RESOLVED
         if self.status and self.status.name == Status.RESOLVED and not self.resolved_at:
             self.resolved_at = timezone.now()
-        # Установить closed_at когда статус изменяется на CLOSED
+        # РЈСЃС‚Р°РЅРѕРІРёС‚СЊ closed_at РєРѕРіРґР° СЃС‚Р°С‚СѓСЃ РёР·РјРµРЅСЏРµС‚СЃСЏ РЅР° CLOSED
         if self.status and self.status.name == Status.CLOSED and not self.closed_at:
             self.closed_at = timezone.now()
         super().save(*args, **kwargs)
@@ -170,11 +183,11 @@ class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='Автор')
     content = models.TextField(verbose_name='Содержание')
     
-    # Временные метки
+    # Р’СЂРµРјРµРЅРЅС‹Рµ РјРµС‚РєРё
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлено')
     
-    # Флаги
+    # Р¤Р»Р°РіРё
     is_internal = models.BooleanField(default=False, verbose_name='Внутренний комментарий')
     
     class Meta:
@@ -264,8 +277,14 @@ class UserProfile(models.Model):
     approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, 
                                     related_name='approved_users', verbose_name='Одобрен пользователем')
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата одобрения')
+    office_room = models.CharField(max_length=50, blank=True, verbose_name='Кабинет')
     department = models.CharField(max_length=100, blank=True, verbose_name='Отдел')
     phone = models.CharField(max_length=20, blank=True, verbose_name='Телефон')
+    notify_email = models.BooleanField(default=True, verbose_name='Email уведомления')
+    notify_email_address = models.EmailField(blank=True, verbose_name='Email для уведомлений')
+    notify_vk = models.BooleanField(default=False, verbose_name='VK уведомления')
+    notify_browser = models.BooleanField(default=True, verbose_name='Уведомления в браузере')
+    vk_user_id = models.CharField(max_length=100, blank=True, verbose_name='VK ID')
     
     class Meta:
         verbose_name = 'Профиль пользователя'
@@ -294,14 +313,14 @@ def notify_admins_on_ticket_change(sender, instance, created, **kwargs):
     from django.contrib import messages
     from django.core.cache import cache
     
-    # Получаем всех администраторов
+    # РџРѕР»СѓС‡Р°РµРј РІСЃРµС… Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ
     admins = User.objects.filter(is_staff=True)
     
     if created:
-        # Уведомление о новом тикете
+        # РЈРІРµРґРѕРјР»РµРЅРёРµ Рѕ РЅРѕРІРѕРј С‚РёРєРµС‚Рµ
         message_text = f'🆕 Новый тикет #{instance.id}: {instance.title}'
         for admin in admins:
-            # Сохраняем уведомление в кэш для администраторов
+            # РЎРѕС…СЂР°РЅСЏРµРј СѓРІРµРґРѕРјР»РµРЅРёРµ РІ РєСЌС€ РґР»СЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРІ
             cache_key = f'notification_admin_{admin.id}'
             notifications = cache.get(cache_key, [])
             notifications.append({
@@ -311,7 +330,7 @@ def notify_admins_on_ticket_change(sender, instance, created, **kwargs):
             })
             cache.set(cache_key, notifications, timeout=None)
     else:
-        # Уведомление об изменении тикета
+        # РЈРІРµРґРѕРјР»РµРЅРёРµ РѕР± РёР·РјРµРЅРµРЅРёРё С‚РёРєРµС‚Р°
         message_text = f'✏️ Тикет #{instance.id} был изменён: {instance.title}'
         for admin in admins:
             cache_key = f'notification_admin_{admin.id}'
@@ -322,3 +341,7 @@ def notify_admins_on_ticket_change(sender, instance, created, **kwargs):
                 'ticket_id': instance.id
             })
             cache.set(cache_key, notifications, timeout=None)
+
+    # Р’РЅРµС€РЅРёРµ СѓРІРµРґРѕРјР»РµРЅРёСЏ (email + VK)
+    send_ticket_notifications(instance, created=created)
+

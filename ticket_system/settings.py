@@ -154,6 +154,14 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ticketsystem.local')
 
+# Notification channels
+NOTIFY_EMAIL_ENABLED = config('NOTIFY_EMAIL_ENABLED', default=True, cast=bool)
+ADMIN_NOTIFICATION_EMAILS = config('ADMIN_NOTIFICATION_EMAILS', default='', cast=Csv())
+VK_NOTIFY_ENABLED = config('VK_NOTIFY_ENABLED', default=False, cast=bool)
+VK_GROUP_TOKEN = config('VK_GROUP_TOKEN', default='')
+VK_API_VERSION = config('VK_API_VERSION', default='5.199')
+SITE_URL = config('SITE_URL', default='')
+
 # Login/Logout redirects
 LOGIN_REDIRECT_URL = 'ticket_list'
 LOGIN_URL = 'login'
