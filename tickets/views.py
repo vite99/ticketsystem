@@ -98,12 +98,49 @@ def ticket_list(request):
         tickets = tickets.filter(priority_id=priority_id)
     
     # Поиск по названию или описанию
-    search_query = request.GET.get('q')
+    search_query = (request.GET.get('q') or '').strip()
     if search_query:
-        tickets = tickets.filter(
+        combined_filter = (
             Q(title__icontains=search_query) |
-            Q(description__icontains=search_query)
+            Q(description__icontains=search_query) |
+            Q(creator__username__icontains=search_query) |
+            Q(creator__first_name__icontains=search_query) |
+            Q(creator__last_name__icontains=search_query) |
+            Q(assigned_to__username__icontains=search_query) |
+            Q(assigned_to__first_name__icontains=search_query) |
+            Q(assigned_to__last_name__icontains=search_query) |
+            Q(tags__name__icontains=search_query) |
+            Q(priority__name__icontains=search_query) |
+            Q(status__name__icontains=search_query) |
+            Q(room__icontains=search_query) |
+            Q(workstation__room__icontains=search_query) |
+            Q(workstation__number__icontains=search_query) |
+            Q(workstation__location__icontains=search_query)
         )
+
+        normalized_query = search_query.lstrip('#')
+        if normalized_query.isdigit():
+            combined_filter |= Q(id=int(normalized_query))
+
+        terms = [term for term in search_query.split() if term]
+        for term in terms:
+            term_filter = (
+                Q(title__icontains=term) |
+                Q(description__icontains=term) |
+                Q(creator__username__icontains=term) |
+                Q(creator__first_name__icontains=term) |
+                Q(creator__last_name__icontains=term) |
+                Q(assigned_to__username__icontains=term) |
+                Q(assigned_to__first_name__icontains=term) |
+                Q(assigned_to__last_name__icontains=term) |
+                Q(tags__name__icontains=term) |
+                Q(workstation__room__icontains=term) |
+                Q(workstation__number__icontains=term) |
+                Q(workstation__location__icontains=term)
+            )
+            combined_filter &= term_filter
+
+        tickets = tickets.filter(combined_filter).distinct()
     
     # Фильтрация по назначению (мои тикеты)
     if request.GET.get('my_tickets'):
@@ -114,12 +151,16 @@ def ticket_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
     context = {
         'page_obj': page_obj,
         'tickets': page_obj.object_list,
         'statuses': Status.objects.all(),
         'priorities': Priority.objects.all(),
         'search_query': search_query,
+        'query_string': query_params.urlencode(),
     }
     return render(request, 'tickets/ticket_list.html', context)
 
