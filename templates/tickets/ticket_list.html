@@ -138,6 +138,14 @@
     </div>
 
     <!-- Фильтры -->
+    <div class="d-flex gap-2 mb-3">
+        <a href="{% url 'ticket_list' %}" class="btn {% if not is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            <i class="fas fa-list"></i> Active
+        </a>
+        <a href="{% url 'ticket_archive' %}" class="btn {% if is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            <i class="fas fa-archive"></i> Archive
+        </a>
+    </div>
     <div class="filter-card">
         <form method="get" class="filter-row">
             <div class="filter-group">

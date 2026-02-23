@@ -14,6 +14,8 @@ from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
 from .forms import TicketForm, TicketFormUser, CommentForm, RegistrationForm
 from django.urls import reverse, reverse_lazy
 
+COMPLETED_STATUS_NAMES = ['resolved', 'closed']
+
 
 class TicketLoginView(LoginView):
     """Представление для входа"""
@@ -85,7 +87,7 @@ def ticket_list(request):
             # Очищаем уведомления
             cache.delete(cache_key)
     
-    tickets = Ticket.objects.all()
+    tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
     
     # Фильтрация по статусу
     status_id = request.GET.get('status')
@@ -157,10 +159,92 @@ def ticket_list(request):
     context = {
         'page_obj': page_obj,
         'tickets': page_obj.object_list,
-        'statuses': Status.objects.all(),
+        'statuses': Status.objects.exclude(name__in=COMPLETED_STATUS_NAMES),
         'priorities': Priority.objects.all(),
         'search_query': search_query,
         'query_string': query_params.urlencode(),
+        'is_archive': False,
+    }
+    return render(request, 'tickets/ticket_list.html', context)
+
+
+@require_approval
+def ticket_archive(request):
+    """Архив завершенных тикетов."""
+    tickets = Ticket.objects.filter(status__name__in=COMPLETED_STATUS_NAMES)
+    if not request.user.is_staff:
+        tickets = tickets.filter(creator=request.user)
+
+    status_id = request.GET.get('status')
+    if status_id:
+        tickets = tickets.filter(status_id=status_id)
+
+    priority_id = request.GET.get('priority')
+    if priority_id:
+        tickets = tickets.filter(priority_id=priority_id)
+
+    search_query = (request.GET.get('q') or '').strip()
+    if search_query:
+        combined_filter = (
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(creator__username__icontains=search_query) |
+            Q(creator__first_name__icontains=search_query) |
+            Q(creator__last_name__icontains=search_query) |
+            Q(assigned_to__username__icontains=search_query) |
+            Q(assigned_to__first_name__icontains=search_query) |
+            Q(assigned_to__last_name__icontains=search_query) |
+            Q(tags__name__icontains=search_query) |
+            Q(priority__name__icontains=search_query) |
+            Q(status__name__icontains=search_query) |
+            Q(room__icontains=search_query) |
+            Q(workstation__room__icontains=search_query) |
+            Q(workstation__number__icontains=search_query) |
+            Q(workstation__location__icontains=search_query)
+        )
+
+        normalized_query = search_query.lstrip('#')
+        if normalized_query.isdigit():
+            combined_filter |= Q(id=int(normalized_query))
+
+        terms = [term for term in search_query.split() if term]
+        for term in terms:
+            term_filter = (
+                Q(title__icontains=term) |
+                Q(description__icontains=term) |
+                Q(creator__username__icontains=term) |
+                Q(creator__first_name__icontains=term) |
+                Q(creator__last_name__icontains=term) |
+                Q(assigned_to__username__icontains=term) |
+                Q(assigned_to__first_name__icontains=term) |
+                Q(assigned_to__last_name__icontains=term) |
+                Q(tags__name__icontains=term) |
+                Q(workstation__room__icontains=term) |
+                Q(workstation__number__icontains=term) |
+                Q(workstation__location__icontains=term)
+            )
+            combined_filter &= term_filter
+
+        tickets = tickets.filter(combined_filter).distinct()
+
+    if request.GET.get('my_tickets'):
+        tickets = tickets.filter(assigned_to=request.user)
+
+    paginator = Paginator(tickets, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
+    context = {
+        'page_obj': page_obj,
+        'tickets': page_obj.object_list,
+        'statuses': Status.objects.filter(name__in=COMPLETED_STATUS_NAMES),
+        'priorities': Priority.objects.all(),
+        'search_query': search_query,
+        'query_string': query_params.urlencode(),
+        'is_archive': True,
     }
     return render(request, 'tickets/ticket_list.html', context)
 
