@@ -11,19 +11,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #667eea;
-            --primary-dark: #764ba2;
-            --primary-light: #a291d1;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --info: #17a2b8;
-            --light: #f8f9fa;
-            --dark: #2d3748;
+            --primary: #2563eb;
+            --primary-soft: #dbeafe;
+            --primary-strong: #1d4ed8;
+            --success: #16a34a;
+            --warning: #eab308;
+            --danger: #dc2626;
+            --info: #0891b2;
+            --bg-body: #f3f4f6;
+            --bg-elevated: #ffffff;
+            --border-subtle: #e5e7eb;
+            --border-strong: #d1d5db;
+            --fg-primary: #0f172a;
+            --fg-muted: #6b7280;
             --border-radius: 12px;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+            --transition-fast: 0.15s ease-out;
+        }
+
+        body[data-theme="dark"] {
+            --primary: #60a5fa;
+            --primary-soft: #1d283a;
+            --primary-strong: #3b82f6;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+            --info: #22c1c3;
+            --bg-body: #020617;
+            --bg-elevated: #020617;
+            --border-subtle: #1f2937;
+            --border-strong: #4b5563;
+            --fg-primary: #e5e7eb;
+            --fg-muted: #9ca3af;
         }
 
         * {
@@ -35,266 +56,312 @@
         }
 
         body {
-            background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
-            color: var(--dark);
+            background-color: var(--bg-body);
+            color: var(--fg-primary);
             line-height: 1.6;
+            transition: background-color var(--transition-fast), color var(--transition-fast);
         }
 
         .navbar {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            box-shadow: var(--shadow-md);
-            padding: 1rem 0;
+            background-color: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-sm);
+            padding: 0.75rem 0;
         }
 
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.5rem;
-            letter-spacing: -0.5px;
-            transition: transform 0.3s ease;
+            font-size: 1.4rem;
+            letter-spacing: -0.03em;
+            color: var(--fg-primary) !important;
         }
 
-        .navbar-brand:hover {
-            transform: scale(1.05);
+        .navbar-brand span {
+            font-weight: 600;
+            color: var(--fg-muted);
+            font-size: 0.95rem;
+            margin-left: 0.35rem;
         }
 
-        .nav-link {
+        .navbar-nav .nav-link {
             font-weight: 500;
             position: relative;
-            transition: all 0.3s ease;
-            padding: 0.5rem 1rem !important;
+            transition: color var(--transition-fast), background-color var(--transition-fast);
+            padding: 0.4rem 0.9rem !important;
+            border-radius: 999px;
+            color: var(--fg-muted) !important;
         }
 
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 2px;
-            background: white;
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
+        .navbar-nav .nav-link::after {
+            display: none;
         }
 
-        .nav-link:hover {
-            color: rgba(255, 255, 255, 0.9) !important;
+        .navbar-nav .nav-link:hover {
+            color: var(--fg-primary) !important;
+            background-color: rgba(37, 99, 235, 0.06);
         }
 
-        .nav-link:hover::after {
-            width: 100%;
+        body[data-theme="dark"] .navbar-nav .nav-link:hover {
+            background-color: rgba(37, 99, 235, 0.16);
         }
 
         .dropdown-menu {
-            border: none;
-            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-md);
             border-radius: var(--border-radius);
-            animation: slideDown 0.3s ease;
+            padding: 0.4rem;
+            background-color: var(--bg-elevated);
         }
 
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .dropdown-item {
+            border-radius: 8px;
+            font-weight: 500;
+            color: var(--fg-muted);
         }
 
         .dropdown-item:hover {
-            background-color: var(--light);
+            background-color: var(--primary-soft);
+            color: var(--fg-primary);
+        }
+
+        .theme-toggle-btn {
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--fg-muted);
+            background-color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+        }
+
+        .theme-toggle-btn:hover {
+            background-color: var(--primary-soft);
+            border-color: var(--primary);
+            color: var(--fg-primary);
+            transform: translateY(-1px);
         }
 
         .card {
-            border: none;
+            border: 1px solid var(--border-subtle);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
-            transition: all 0.3s ease;
+            background-color: var(--bg-elevated);
+            transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
         }
 
         .card:hover {
             box-shadow: var(--shadow-md);
             transform: translateY(-2px);
+            border-color: var(--border-strong);
         }
 
         .card-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-subtle);
             border-radius: var(--border-radius) var(--border-radius) 0 0;
-            border: none;
-            padding: 1.25rem;
+            padding: 1rem 1.25rem;
             font-weight: 600;
+            color: var(--fg-primary);
         }
 
-        .card-header h5, .card-header h4, .card-header h3 {
+        .card-header h5,
+        .card-header h4,
+        .card-header h3 {
             margin: 0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border: none;
-            font-weight: 500;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: translateY(0);
+            font-size: 1rem;
         }
 
         .btn {
-            border-radius: 8px;
+            border-radius: 999px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
         }
 
-        .btn-success, .btn-danger, .btn-warning {
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+            border: none;
+            padding: 0.55rem 1.4rem;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-strong) 0%, var(--primary) 100%);
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-primary {
+            border-color: var(--border-subtle);
+            color: var(--fg-primary);
+            background-color: transparent;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-soft);
+            border-color: var(--primary);
+            color: var(--fg-primary);
+        }
+
+        .btn-success,
+        .btn-danger,
+        .btn-warning {
             border: none;
         }
 
         .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            box-shadow: 0 8px 24px rgba(22, 163, 74, 0.25);
+            transform: translateY(-1px);
         }
 
         .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+            box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+            transform: translateY(-1px);
         }
 
         .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            box-shadow: 0 8px 24px rgba(234, 179, 8, 0.25);
+            transform: translateY(-1px);
         }
 
         .badge {
-            padding: 0.5rem 0.75rem;
-            border-radius: 20px;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
             font-weight: 500;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .alert {
-            border: none;
-            border-left: 4px solid;
-            border-radius: 8px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            background-color: var(--bg-elevated);
+            color: var(--fg-primary);
+            padding: 0.9rem 1rem;
         }
 
         .alert-danger {
-            border-left-color: var(--danger);
-            background-color: #fff5f5;
+            border-color: rgba(220, 38, 38, 0.2);
+            background-color: rgba(248, 113, 113, 0.08);
         }
 
         .alert-success {
-            border-left-color: var(--success);
-            background-color: #f0f9ff;
+            border-color: rgba(22, 163, 74, 0.2);
+            background-color: rgba(74, 222, 128, 0.06);
         }
 
         .alert-warning {
-            border-left-color: var(--warning);
-            background-color: #fffbf0;
+            border-color: rgba(234, 179, 8, 0.25);
+            background-color: rgba(250, 204, 21, 0.08);
         }
 
         .alert-info {
-            border-left-color: var(--info);
-            background-color: #f0f7ff;
+            border-color: rgba(8, 145, 178, 0.25);
+            background-color: rgba(45, 212, 191, 0.08);
         }
 
-        .form-control, .form-select {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            padding: 0.75rem;
+        .form-control,
+        .form-select {
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+            padding: 0.7rem 0.85rem;
+            background-color: var(--bg-elevated);
+            color: var(--fg-primary);
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
         }
 
         .form-label {
             font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 0.5rem;
+            color: var(--fg-primary);
+            margin-bottom: 0.45rem;
         }
 
         .table {
             margin-bottom: 0;
+            color: var(--fg-primary);
         }
 
         .table thead th {
-            background-color: var(--light);
+            background-color: var(--primary-soft);
             font-weight: 600;
             border: none;
-            border-bottom: 2px solid #e0e0e0;
-            color: var(--dark);
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--fg-primary);
         }
 
         .table tbody tr {
-            transition: all 0.3s ease;
+            transition: background-color var(--transition-fast);
         }
 
         .table tbody tr:hover {
-            background-color: #f8f9fa;
-            box-shadow: inset 0 0 0 1px #e0e0e0;
+            background-color: rgba(15, 23, 42, 0.02);
         }
 
         .ticket-row:hover {
-            background-color: #f8f9fa;
-            transition: background-color 0.3s;
+            background-color: rgba(15, 23, 42, 0.02);
+            transition: background-color var(--transition-fast);
         }
 
-        .priority-critical { background-color: #dc3545 !important; color: white; }
-        .priority-high { background-color: #fd7e14 !important; color: white; }
-        .priority-medium { background-color: #ffc107 !important; color: #333; }
-        .priority-low { background-color: #17a2b8 !important; color: white; }
+        .priority-critical {
+            background-color: #dc2626 !important;
+            color: white;
+        }
+
+        .priority-high {
+            background-color: #ea580c !important;
+            color: white;
+        }
+
+        .priority-medium {
+            background-color: #eab308 !important;
+            color: #111827;
+        }
+
+        .priority-low {
+            background-color: #0f766e !important;
+            color: white;
+        }
 
         .list-group-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
             margin-bottom: 8px;
-            transition: all 0.3s ease;
+            transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+            background-color: var(--bg-elevated);
         }
 
         .list-group-item:hover {
             border-color: var(--primary);
             box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
         }
 
         footer {
-            background: linear-gradient(135deg, #f8f9fa 0%, #f0f3ff 100%);
-            border-top: 1px solid #e0e0e0;
+            background-color: transparent;
+            border-top: 1px solid var(--border-subtle);
             margin-top: 4rem;
         }
 
-        h1, h2, h3, h4, h5, h6 {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             font-weight: 700;
-            color: var(--dark);
+            color: var(--fg-primary);
         }
 
         .text-muted {
-            color: #718096 !important;
+            color: var(--fg-muted) !important;
         }
 
         .invalid-feedback {
@@ -304,20 +371,19 @@
         }
 
         .toast {
-            border: none;
+            border: 1px solid var(--border-subtle);
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-lg);
+            background-color: var(--bg-elevated);
         }
 
         .toast-header {
-            background: white;
-            border: none;
-            border-bottom: 1px solid #e0e0e0;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-subtle);
         }
 
-        /* Плавные переходы для всех интерактивных элементов */
         a {
-            transition: color 0.3s ease;
+            transition: color var(--transition-fast);
         }
 
         a:hover {
@@ -326,16 +392,16 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-theme="light">
     <!-- Навигация -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'ticket_list' %}">🎫 Ticket System</a>
+            <a class="navbar-brand" href="{% url 'ticket_list' %}">Ticket System<span>система управления</span></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center gap-1">
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'ticket_list' %}">Тикеты</a>
@@ -370,6 +436,12 @@
                         <a class="nav-link" href="{% url 'register' %}">Регистрация</a>
                     </li>
                     {% endif %}
+                    <li class="nav-item ms-2">
+                        <button id="themeToggle" class="theme-toggle-btn" type="button">
+                            <span class="theme-toggle-icon">🌙</span>
+                            <span class="d-none d-md-inline">Тема</span>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -413,52 +485,100 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Функция для отображения toast уведомления
-        function showNotification(message, type = 'info') {
-            const toast = document.getElementById('notificationToast');
-            const toastBody = document.getElementById('toastMessage');
-            const toastHeader = document.getElementById('toastTitle');
-            
-            // Определяем заголовок и стиль в зависимости от типа
-            if (type === 'info') {
-                toastHeader.innerHTML = '🆕 Новое уведомление';
-                toastHeader.className = 'me-auto';
-            } else if (type === 'warning') {
-                toastHeader.innerHTML = '✏️ Изменение';
-                toastHeader.className = 'me-auto text-warning';
-            } else if (type === 'success') {
-                toastHeader.innerHTML = '✅ Успешно';
-                toastHeader.className = 'me-auto text-success';
-            } else if (type === 'danger') {
-                toastHeader.innerHTML = '❌ Ошибка';
-                toastHeader.className = 'me-auto text-danger';
-            }
-            
-            toastBody.textContent = message;
-            
-            // Показываем toast
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-        }
+        // Переключение светлой/темной темы с сохранением в localStorage
+        document.addEventListener('DOMContentLoaded', function () {
+            const body = document.body;
+            const toggle = document.getElementById('themeToggle');
+            const icon = toggle ? toggle.querySelector('.theme-toggle-icon') : null;
+            const savedTheme = localStorage.getItem('ticket-theme');
 
-        // Проверяем наличие уведомлений при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
+            if (savedTheme === 'dark' || savedTheme === 'light') {
+                body.setAttribute('data-theme', savedTheme);
+                if (icon) {
+                    icon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+                }
+            }
+
+            if (toggle && icon) {
+                toggle.addEventListener('click', function () {
+                    const current = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                    body.setAttribute('data-theme', current);
+                    localStorage.setItem('ticket-theme', current);
+                    icon.textContent = current === 'dark' ? '☀️' : '🌙';
+                });
+            }
+
+            // Функция для отображения toast уведомления
+            window.showNotification = function (message, type = 'info') {
+                const toast = document.getElementById('notificationToast');
+                const toastBody = document.getElementById('toastMessage');
+                const toastHeader = document.getElementById('toastTitle');
+
+                if (!toast || !toastBody || !toastHeader) {
+                    return;
+                }
+
+                if (type === 'info') {
+                    toastHeader.textContent = 'Новое уведомление';
+                    toastHeader.className = 'me-auto';
+                } else if (type === 'warning') {
+                    toastHeader.textContent = 'Изменение';
+                    toastHeader.className = 'me-auto text-warning';
+                } else if (type === 'success') {
+                    toastHeader.textContent = 'Успешно';
+                    toastHeader.className = 'me-auto text-success';
+                } else if (type === 'danger') {
+                    toastHeader.textContent = 'Ошибка';
+                    toastHeader.className = 'me-auto text-danger';
+                }
+
+                toastBody.textContent = message;
+
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+            };
+
             // Получаем уведомления из данных страницы (если они есть)
             const notifications = document.querySelectorAll('[data-notification]');
             notifications.forEach(el => {
                 const message = el.dataset.notification;
                 const type = el.dataset.notificationType || 'info';
-                setTimeout(() => showNotification(message, type), 500);
+                setTimeout(() => window.showNotification(message, type), 500);
             });
 
-            // Для админов: проверяем наличие уведомлений через WebSocket или AJAX
+            // Для админов: периодическая проверка новых уведомлений (каждые 5 секунд)
             {% if user.is_staff %}
-            // Периодическая проверка новых уведомлений (каждые 5 секунд)
-            setInterval(function() {
-                fetch('{% url "ticket_list" %}?check_notifications=true')
+            let lastTicketId = 0;
+            let initializedNotifications = false;
+
+            function pollNewTickets() {
+                fetch('{% url "get_new_tickets" %}?last_id=' + lastTicketId)
                     .then(response => response.json())
-                    .catch(error => console.log('No notifications'));
-            }, 5000);
+                    .then(data => {
+                        if (!data || !data.success || !Array.isArray(data.tickets)) {
+                            return;
+                        }
+
+                        const ids = data.tickets.map(t => Number(t.id)).filter(Number.isFinite);
+                        if (ids.length > 0) {
+                            lastTicketId = Math.max(lastTicketId, Math.max(...ids));
+                        }
+
+                        if (!initializedNotifications) {
+                            initializedNotifications = true;
+                            return;
+                        }
+
+                        const orderedTickets = [...data.tickets].sort((a, b) => a.id - b.id);
+                        orderedTickets.forEach(ticket => {
+                            window.showNotification(`Новый тикет #${ticket.id}: ${ticket.title}`, 'info');
+                        });
+                    })
+                    .catch(() => {});
+            }
+
+            pollNewTickets();
+            setInterval(pollNewTickets, 10000);
             {% endif %}
         });
     </script>

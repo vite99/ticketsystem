@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import Ticket, Comment, Status, Priority, Tag, UserProfile
 from .forms import TicketForm, TicketFormUser, CommentForm, RegistrationForm
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 
 
 class TicketLoginView(LoginView):
@@ -426,9 +426,15 @@ def revoke_approval(request, user_id):
 def get_new_tickets(request):
     """API endpoint для получения новых тикетов (для AJAX)"""
     from django.http import JsonResponse
+
+    if not request.user.is_staff:
+        return JsonResponse({'success': True, 'tickets': [], 'count': 0})
     
     # Получить ID последнего просмотренного тикета из параметров
-    last_ticket_id = request.GET.get('last_id', 0)
+    try:
+        last_ticket_id = int(request.GET.get('last_id', 0))
+    except (TypeError, ValueError):
+        last_ticket_id = 0
     
     # Получить количество новых тикетов
     tickets = Ticket.objects.filter(id__gt=last_ticket_id).order_by('-created_at')[:10]
@@ -466,7 +472,8 @@ def get_new_tickets(request):
             'status_color': status_colors.get(status_name, 'secondary'),
             'created_at': ticket.created_at.strftime('%Y-%m-%d %H:%M'),
             'room': ticket.room or '-',
-            'is_staff': request.user.is_staff
+            'is_staff': request.user.is_staff,
+            'url': reverse('ticket_detail', kwargs={'ticket_id': ticket.id}),
         }
         tickets_data.append(ticket_info)
     
