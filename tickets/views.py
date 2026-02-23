@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.decorators.http import require_POST
 from django.db.models import Q, Count
 from django.db import models
 from django.core.paginator import Paginator
@@ -196,6 +197,18 @@ def ticket_edit(request, ticket_id):
         form = form_class(instance=ticket)
     
     return render(request, 'tickets/ticket_form.html', {'form': form, 'ticket': ticket, 'title': 'Редактировать тикет'})
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+@require_POST
+def assign_ticket_to_me(request, ticket_id):
+    """Назначить тикет текущему администратору."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    ticket.assigned_to = request.user
+    ticket.save(update_fields=['assigned_to', 'updated_at'])
+    messages.success(request, f'Тикет #{ticket.id} назначен на вас.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
 
 
 @login_required(login_url='login')

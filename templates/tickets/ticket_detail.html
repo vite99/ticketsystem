@@ -382,6 +382,14 @@
                 <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> К списку
                 </a>
+                {% if user.is_staff and ticket.assigned_to != user %}
+                <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-user-plus"></i> Назначить мне
+                    </button>
+                </form>
+                {% endif %}
                 {% if can_edit %}
                 <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Редактировать
