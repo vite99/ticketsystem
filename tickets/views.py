@@ -909,6 +909,52 @@ def workstation_edit(request, workstation_id):
 
 @login_required(login_url='login')
 @user_passes_test(is_admin)
+def user_detail_admin(request, user_id):
+    """Страница профиля пользователя для администраторов"""
+    target_user = get_object_or_404(User, id=user_id)
+    
+    # Получить профиль пользователя
+    try:
+        profile = target_user.profile
+    except UserProfile.DoesNotExist:
+        profile = UserProfile.objects.create(user=target_user)
+    
+    # Получить все тикеты (созданные и назначенные)
+    created_tickets = Ticket.objects.filter(creator=target_user).select_related('status', 'priority')
+    assigned_tickets = Ticket.objects.filter(assigned_to=target_user).select_related('status', 'priority')
+    
+    # Объединить и отсортировать
+    all_tickets = list(created_tickets) + list(assigned_tickets)
+    all_tickets = sorted(all_tickets, key=lambda t: t.created_at, reverse=True)
+    
+    # Подсчитать статистику
+    open_statuses = ['OPEN', 'IN_PROGRESS', 'WAITING']
+    closed_statuses = ['CLOSED', 'RESOLVED']
+    
+    total_tickets = len(all_tickets)
+    open_tickets = sum(1 for t in all_tickets if t.status and t.status.name in open_statuses)
+    closed_tickets = sum(1 for t in all_tickets if t.status and t.status.name in closed_statuses)
+    
+    # Пагинация
+    paginator = Paginator(all_tickets, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'target_user': target_user,
+        'profile': profile,
+        'total_tickets': total_tickets,
+        'open_tickets': open_tickets,
+        'closed_tickets': closed_tickets,
+        'page_obj': page_obj,
+        'all_tickets': page_obj.object_list,
+    }
+    
+    return render(request, 'tickets/user_detail_admin.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
 def workstation_delete(request, workstation_id):
     workstation = get_object_or_404(Workstation, id=workstation_id)
 
