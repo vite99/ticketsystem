@@ -1,0 +1,54 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Рабочие места - Ticket System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">🖥️ Рабочие места <span class="badge bg-secondary">{{ total }}</span></h3>
+    <a href="{% url 'workstation_create' %}" class="btn btn-success">Добавить рабочее место</a>
+</div>
+
+{% if grouped %}
+    {% for room, workstations in grouped.items %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong>Кабинет: {{ room }}</strong>
+            <span class="badge bg-light text-dark">{{ workstations|length }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Кабинет</th>
+                        <th style="width: 25%;">Номер/Описание</th>
+                        <th>Подробное местоположение</th>
+                        <th style="width: 210px;" class="text-end">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for workstation in workstations %}
+                    <tr>
+                        <td>{{ workstation.room }}</td>
+                        <td>{{ workstation.number }}</td>
+                        <td>{{ workstation.location|default:"-" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'workstation_edit' workstation.id %}" class="btn btn-sm btn-outline-primary">Изменить</a>
+                            <a href="{% url 'workstation_delete' workstation.id %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <h5 class="mb-2">Рабочие места не добавлены</h5>
+        <p class="text-muted mb-4">Создайте первое рабочее место для привязки к тикетам.</p>
+        <a href="{% url 'workstation_create' %}" class="btn btn-success">Добавить рабочее место</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

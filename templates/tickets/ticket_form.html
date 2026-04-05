@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ title }} - Ticket System{% endblock %}
 
@@ -12,10 +12,18 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    
+
                     {% if form.non_field_errors %}
                     <div class="alert alert-danger">
                         {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    {% if form.template_topic %}
+                    <div class="mb-3">
+                        <label for="{{ form.template_topic.id_for_label }}" class="form-label">{{ form.template_topic.label }}</label>
+                        {{ form.template_topic }}
+                        <small class="form-text text-muted d-block mt-1">Выберите готовую тему, чтобы автозаполнить заголовок и описание.</small>
                     </div>
                     {% endif %}
 
@@ -104,7 +112,7 @@
                             <label for="{{ form.workstation.id_for_label }}" class="form-label">{{ form.workstation.label }}</label>
                             {{ form.workstation }}
                             <small class="form-text text-muted d-block mt-2">
-                                <i class="fas fa-info-circle"></i> 
+                                <i class="fas fa-info-circle"></i>
                                 Выберите рабочее место/компьютер в кабинете
                             </small>
                             {% if form.workstation.errors %}
@@ -162,4 +170,44 @@
         box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const topic = document.getElementById('{{ form.template_topic.id_for_label|default:"" }}');
+    const title = document.getElementById('{{ form.title.id_for_label }}');
+    const description = document.getElementById('{{ form.description.id_for_label }}');
+
+    if (!topic || !title || !description) return;
+
+    const templates = {
+        no_internet: {
+            title: 'Нет интернета на рабочем месте',
+            description: 'На рабочем месте отсутствует доступ к интернету. Когда началась проблема, что уже проверено, есть ли проблема у соседних ПК.'
+        },
+        printer_issue: {
+            title: 'Проблема с принтером',
+            description: 'Принтер не печатает / ошибка печати. Укажите модель принтера, номер кабинета и текст ошибки (если есть).'
+        },
+        account_access: {
+            title: 'Проблема с доступом к аккаунту',
+            description: 'Не удаётся войти в учётную запись. Укажите логин, где возникает ошибка и что пишет система.'
+        },
+        software_install: {
+            title: 'Запрос на установку программы',
+            description: 'Нужно установить программу на рабочий компьютер. Укажите название программы, версию и цель использования.'
+        },
+        pc_slow: {
+            title: 'Компьютер работает медленно',
+            description: 'Компьютер заметно тормозит при работе. Укажите, какие программы открыты и в какой момент наблюдается замедление.'
+        }
+    };
+
+    topic.addEventListener('change', function () {
+        const preset = templates[topic.value];
+        if (!preset) return;
+        title.value = preset.title;
+        description.value = preset.description;
+    });
+});
+</script>
 {% endblock %}

@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -413,6 +413,9 @@
                         <a class="nav-link" href="{% url 'dashboard' %}">Мой кабинет</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'ticket_statistics' %}">Статистика</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'notification_settings' %}">Настройки</a>
                     </li>
                     {% if user.is_staff %}
@@ -422,6 +425,8 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}">Кабинет</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ticket_statistics' %}">Статистика тикетов</a></li>
+                            <li><a class="dropdown-item" href="{% url 'workstation_list' %}">Рабочие места</a></li>
                             <li><a class="dropdown-item" href="{% url 'user_approval_list' %}">Одобрение пользователей</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'admin:index' %}">Django Админ-панель</a></li>
@@ -429,7 +434,10 @@
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">Выход ({{ user.username }})</a>
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link btn btn-link p-0 border-0 bg-transparent">Выход ({{ user.username }})</button>
+                        </form>
                     </li>
                     {% else %}
                     <li class="nav-item">
@@ -588,3 +596,4 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

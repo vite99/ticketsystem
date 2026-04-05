@@ -1,12 +1,44 @@
-from django import forms
+﻿from django import forms
 from django.contrib.auth.models import User
 
-from .models import Comment, Ticket, UserProfile, Tag
+from .models import Comment, Ticket, UserProfile, Tag, Workstation
+
+
+TICKET_TOPIC_PRESETS = (
+    ('', 'Выберите тему (шаблон)'),
+    ('no_internet', 'Нет интернета / сети'),
+    ('printer_issue', 'Проблема с принтером'),
+    ('account_access', 'Доступ к аккаунту'),
+    ('software_install', 'Установка программы'),
+    ('pc_slow', 'Медленно работает компьютер'),
+    ('other', 'Другое'),
+)
+
+class WorkstationForm(forms.ModelForm):
+    class Meta:
+        model = Workstation
+        fields = ['room', 'number', 'location']
+        widgets = {
+            'room': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: 101 (IT кабинет)'}),
+            'number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: ПК-1'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: Левый угол, у окна'}),
+        }
+        labels = {
+            'room': 'Кабинет/Офис',
+            'number': 'Номер/Описание',
+            'location': 'Подробное местоположение',
+        }
 
 
 class TicketForm(forms.ModelForm):
-    """Форма для создания и редактирования тикета (для администраторов)"""
+    """Форма для создания и редактирования тикета (для администраторов)."""
 
+    template_topic = forms.ChoiceField(
+        choices=TICKET_TOPIC_PRESETS,
+        required=False,
+        label='Тема',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
         required=False,
@@ -25,7 +57,7 @@ class TicketForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-control'}),
             'workstation': forms.Select(attrs={'class': 'form-control'}),
             'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Расчетное количество часов'}),
+            'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Расчётное количество часов'}),
         }
         labels = {
             'title': 'Заголовок',
@@ -35,12 +67,34 @@ class TicketForm(forms.ModelForm):
             'status': 'Статус',
             'workstation': 'Рабочее место/Компьютер',
             'due_date': 'Срок выполнения',
-            'estimated_hours': 'Расчетные часы',
+            'estimated_hours': 'Расчётные часы',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields([
+            'template_topic',
+            'title',
+            'description',
+            'assigned_to',
+            'priority',
+            'status',
+            'tags',
+            'workstation',
+            'due_date',
+            'estimated_hours',
+        ])
 
 
 class TicketFormUser(forms.ModelForm):
     """Упрощённая форма для обычных пользователей."""
+
+    template_topic = forms.ChoiceField(
+        choices=TICKET_TOPIC_PRESETS,
+        required=False,
+        label='Тема',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
 
     class Meta:
         model = Ticket
@@ -59,6 +113,17 @@ class TicketFormUser(forms.ModelForm):
             'workstation': 'Рабочее место/Компьютер',
             'due_date': 'Срок выполнения',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields([
+            'template_topic',
+            'title',
+            'description',
+            'user_urgency',
+            'workstation',
+            'due_date',
+        ])
 
 
 class CommentForm(forms.ModelForm):

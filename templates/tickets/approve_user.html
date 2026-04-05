@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-7 col-lg-6">
             <div class="card">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">Одобрение пользователя</h5>
@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <h6>Информация о пользователе:</h6>
-                        <ul class="list-unstyled">
+                        <ul class="list-unstyled mb-0">
                             <li><strong>Имя пользователя:</strong> {{ user.username }}</li>
                             <li><strong>Email:</strong> {{ user.email }}</li>
                             <li><strong>Полное имя:</strong> {{ user.get_full_name }}</li>
@@ -22,25 +22,30 @@
                             <li><strong>Отдел:</strong> {{ user.profile.department }}</li>
                             {% endif %}
                             {% if user.profile.office_room %}
-                            <li><strong>Кабинет:</strong> {{ user.profile.office_room }}</li>
+                            <li><strong>Кабинет сотрудника:</strong> {{ user.profile.office_room }}</li>
                             {% endif %}
                             {% if user.profile.phone %}
                             <li><strong>Телефон:</strong> {{ user.profile.phone }}</li>
                             {% endif %}
+                            {% if user.profile.workstation %}
+                            <li><strong>Текущее рабочее место:</strong> {{ user.profile.workstation }}</li>
+                            {% endif %}
                         </ul>
                     </div>
-                    
+
                     <p>Перед одобрением можно отредактировать данные заявки.</p>
-                    
+
                     <form method="post">
                         {% csrf_token %}
+
                         <div class="form-group mb-3">
-                            <label for="{{ form.office_room.id_for_label }}">Кабинет</label>
+                            <label for="{{ form.office_room.id_for_label }}">Кабинет сотрудника</label>
                             {{ form.office_room }}
                             {% if form.office_room.errors %}
                             <div class="invalid-feedback d-block">{{ form.office_room.errors }}</div>
                             {% endif %}
                         </div>
+
                         <div class="form-group mb-3">
                             <label for="{{ form.department.id_for_label }}">Отдел</label>
                             {{ form.department }}
@@ -48,6 +53,7 @@
                             <div class="invalid-feedback d-block">{{ form.department.errors }}</div>
                             {% endif %}
                         </div>
+
                         <div class="form-group mb-3">
                             <label for="{{ form.phone.id_for_label }}">Телефон</label>
                             {{ form.phone }}
@@ -55,8 +61,32 @@
                             <div class="invalid-feedback d-block">{{ form.phone.errors }}</div>
                             {% endif %}
                         </div>
-                        
-                        <div class="d-flex gap-2">
+
+                        <input type="hidden" name="workstation_id" id="workstation_id_input" value="{{ user.profile.workstation.id|default:'' }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">Кабинет рабочего места</label>
+                            <select id="room_select" class="form-control">
+                                <option value="">-- Выберите кабинет --</option>
+                                {% for room in rooms %}
+                                <option value="{{ room }}" {% if user.profile.workstation and user.profile.workstation.room == room %}selected{% endif %}>
+                                    {{ room }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Рабочее место/Компьютер</label>
+                            <select id="workstation_select" class="form-control">
+                                <option value="">-- Сначала выберите кабинет --</option>
+                            </select>
+                            {% if user.profile.workstation %}
+                            <small class="text-muted">Текущее: {{ user.profile.workstation }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
                             <button type="submit" name="action" value="save" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Сохранить
                             </button>
@@ -73,4 +103,56 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const roomSelect = document.getElementById('room_select');
+const wsSelect = document.getElementById('workstation_select');
+const wsInput = document.getElementById('workstation_id_input');
+const currentWsId = "{{ user.profile.workstation.id|default:'' }}";
+const endpoint = "{% url 'workstations_by_room' %}";
+
+function loadWorkstations(room, selectId) {
+    if (!room) {
+        wsSelect.innerHTML = '<option value="">-- Сначала выберите кабинет --</option>';
+        wsInput.value = '';
+        return;
+    }
+
+    fetch(`${endpoint}?room=${encodeURIComponent(room)}`)
+        .then((response) => response.json())
+        .then((data) => {
+            wsSelect.innerHTML = '<option value="">-- Не указано --</option>';
+            data.workstations.forEach((workstation) => {
+                const option = document.createElement('option');
+                option.value = workstation.id;
+                option.textContent = workstation.label;
+                if (String(workstation.id) === String(selectId)) {
+                    option.selected = true;
+                }
+                wsSelect.appendChild(option);
+            });
+            wsInput.value = wsSelect.value;
+        })
+        .catch(() => {
+            wsSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+            wsInput.value = '';
+        });
+}
+
+if (roomSelect && wsSelect && wsInput) {
+    if (roomSelect.value) {
+        loadWorkstations(roomSelect.value, currentWsId);
+    }
+
+    roomSelect.addEventListener('change', () => {
+        loadWorkstations(roomSelect.value, null);
+    });
+
+    wsSelect.addEventListener('change', () => {
+        wsInput.value = wsSelect.value;
+    });
+}
+</script>
 {% endblock %}
