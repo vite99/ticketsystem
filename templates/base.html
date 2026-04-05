@@ -391,6 +391,19 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <!-- HTMX для live updates -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        /* Плавная анимация при обновлении элементов */
+        .htmx-swapping {
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+        .htmx-settling {
+            opacity: 1;
+            transition: opacity 0.2s ease-in;
+        }
+    </style>
 </head>
 <body data-theme="light">
     <!-- Навигация -->
@@ -433,6 +446,19 @@
                         </ul>
                     </li>
                     {% endif %}
+                    
+                    <!-- HTMX Live Badge для новых тикетов (только для админа) -->
+                    {% if user.is_staff %}
+                    <li class="nav-item" id="new-tickets-badge-container"
+                        hx-get="{% url 'new_tickets_badge' %}"
+                        hx-trigger="every 30s"
+                        hx-swap="innerHTML">
+                        <div hx-get="{% url 'new_tickets_badge' %}" hx-trigger="load">
+                            <!-- Изначальный контент загружается HTMX -->
+                        </div>
+                    </li>
+                    {% endif %}
+                    
                     <li class="nav-item">
                         <form method="post" action="{% url 'logout' %}" class="d-inline">
                             {% csrf_token %}

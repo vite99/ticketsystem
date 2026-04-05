@@ -150,7 +150,11 @@
                     <div class="meta-label">
                         <i class="fas fa-check-circle"></i> Статус
                     </div>
-                    <div class="meta-value">
+                    <div class="meta-value" id="status-badge-container"
+                        hx-get="{% url 'ticket_status_partial' ticket.id %}"
+                        hx-trigger="every 10s"
+                        hx-swap="innerHTML swap:0.3s">
+                        <!-- HTMX загружает статус здесь -->
                         <span class="badge" style="background-color: {{ ticket.status.color }}; color: white; padding: 6px 12px;">
                             {{ ticket.status.get_name_display }}
                         </span>
@@ -273,7 +277,11 @@
                         <i class="fas fa-comments"></i> Комментарии ({{ comments.count }})
                     </h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="comments-container"
+                    hx-get="{% url 'ticket_comments_partial' ticket.id %}"
+                    hx-trigger="every 15s"
+                    hx-swap="innerHTML swap:0.3s">
+                    <!-- HTMX загружает комментарии здесь -->
                     {% if comments %}
                         {% for comment in comments %}
                             {% if not comment.is_internal or user == comment.author or user == ticket.creator or user == ticket.assigned_to or user.is_staff %}
@@ -299,9 +307,10 @@
                             <p>Комментариев нет</p>
                         </div>
                     {% endif %}
+                </div>
 
-                    {% if user.is_authenticated %}
-                    <hr style="margin: 24px 0;">
+                {% if user.is_authenticated %}
+                <div style="border-top: 1px solid #e5e7eb; padding: 20px;">
                     <h6 style="margin-bottom: 16px;">
                         <i class="fas fa-plus-circle"></i> Добавить комментарий
                     </h6>

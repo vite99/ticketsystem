@@ -1,0 +1,34 @@
+{% if comments %}
+    {% for comment in comments %}
+    <div class="comment" style="padding: 16px; background-color: #f8f9fa; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid {% if comment.is_internal %}#ffc107{% else %}#2563eb{% endif %};">
+        <div class="comment-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+                <span class="comment-author" style="font-weight: 600; color: #0f172a;">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                {% if comment.is_internal %}
+                <span class="badge" style="background-color: #ffc107; color: #333; margin-left: 8px; font-size: 0.75rem;">Внутренний</span>
+                {% endif %}
+            </div>
+            <span class="comment-date" style="color: #6b7280; font-size: 0.875rem;">{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="comment-content" style="color: #2d3748; line-height: 1.6; white-space: pre-wrap;">{{ comment.content }}</div>
+        {% if comment.attachments.all %}
+        <div class="comment-attachments" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+            <small style="color: #718096;"><i class="fas fa-paperclip"></i> Прикреплены файлы:</small>
+            <ul style="list-style: none; padding: 0; margin: 8px 0 0 0;">
+                {% for attachment in comment.attachments.all %}
+                <li>
+                    <a href="{{ attachment.file.url }}" style="color: #2563eb; text-decoration: none;">
+                        📎 {{ attachment.file.name|truncatewords:5 }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-comments" style="text-align: center; padding: 40px 20px; color: #718096;">
+        <i class="fas fa-comments"></i> Нет комментариев
+    </div>
+{% endif %}

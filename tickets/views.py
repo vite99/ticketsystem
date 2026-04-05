@@ -1041,6 +1041,64 @@ def mark_ticket_unresolved(request, ticket_id):
     return redirect('ticket_detail', ticket_id=ticket_id)
 
 
+# =========================
+# HTMX Live Update Views
+# =========================
+
+@login_required(login_url='login')
+def ticket_status_partial(request, ticket_id):
+    """Partial для отображения статуса тикета (live updates)"""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    context = {'ticket': ticket}
+    return render(request, 'tickets/partials/ticket_status_partial.html', context)
+
+
+@login_required(login_url='login')
+def ticket_comments_partial(request, ticket_id):
+    """Partial для отображения комментариев (live updates)"""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    comments = ticket.comments.all()
+    context = {
+        'ticket': ticket,
+        'comments': comments,
+    }
+    return render(request, 'tickets/partials/ticket_comments_partial.html', context)
+
+
+@login_required(login_url='login')
+def new_tickets_count(request):
+    """API endpoint для получения количества новых тикетов (для администраторов)"""
+    from django.http import JsonResponse
+    
+    if not request.user.is_staff:
+        return JsonResponse({'count': 0})
+    
+    # Подсчитать открытые тикеты
+    open_status = Status.objects.filter(name=Status.OPEN).first()
+    if open_status:
+        count = Ticket.objects.filter(status=open_status).count()
+    else:
+        count = 0
+    
+    return JsonResponse({'count': count})
+
+
+@login_required(login_url='login')
+def new_tickets_badge(request):
+    """Partial для значка "Новые тикеты" (live updates)"""
+    if not request.user.is_staff:
+        return render(request, 'tickets/partials/new_tickets_badge.html', {'count': 0})
+    
+    open_status = Status.objects.filter(name=Status.OPEN).first()
+    if open_status:
+        count = Ticket.objects.filter(status=open_status).count()
+    else:
+        count = 0
+    
+    context = {'count': count}
+    return render(request, 'tickets/partials/new_tickets_badge.html', context)
+
+
 @login_required(login_url='login')
 @user_passes_test(is_admin)
 def workstation_delete(request, workstation_id):

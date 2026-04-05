@@ -43,4 +43,10 @@ urlpatterns = [
     path('workstations/create/', views.workstation_create, name='workstation_create'),
     path('workstations/<int:workstation_id>/edit/', views.workstation_edit, name='workstation_edit'),
     path('workstations/<int:workstation_id>/delete/', views.workstation_delete, name='workstation_delete'),
+    
+    # HTMX Live Updates
+    path('api/ticket/<int:ticket_id>/status/', views.ticket_status_partial, name='ticket_status_partial'),
+    path('api/ticket/<int:ticket_id>/comments/', views.ticket_comments_partial, name='ticket_comments_partial'),
+    path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
+    path('api/new-tickets-badge/', views.new_tickets_badge, name='new_tickets_badge'),
 ]
