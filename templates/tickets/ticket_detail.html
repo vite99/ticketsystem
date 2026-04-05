@@ -495,8 +495,8 @@
             {% endif %}
 
             <div class="action-grid">
-                {% if can_edit %}
-                <!-- Кнопки управления статусом -->
+                <!-- Кнопки управления статусом (только для администраторов и назначенных) -->
+                {% if request.user.is_staff or request.user == ticket.assigned_to %}
                 <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-bottom: 16px;">
                     <div style="font-size: 0.85rem; color: #718096; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
                         <i class="fas fa-tasks"></i> Управление статусом
