@@ -987,8 +987,10 @@ def change_ticket_status(request, ticket_id):
     # Добавить запись в историю
     TicketHistory.objects.create(
         ticket=ticket,
-        user=request.user,
-        action=f'Статус изменён: {old_status} → {new_status}'
+        actor=request.user,
+        action=TicketHistory.ACTION_STATUS_CHANGED,
+        old_value=str(old_status) if old_status else '',
+        new_value=str(new_status)
     )
     
     messages.success(request, f'✅ Статус изменён на "{new_status}".')
