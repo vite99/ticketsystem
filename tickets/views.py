@@ -257,12 +257,6 @@ def ticket_detail(request, ticket_id):
     # РџСЂРѕРІРµСЂРєР° РїСЂР°РІ РґРѕСЃС‚СѓРїР°
     can_edit = request.user == ticket.creator or request.user == ticket.assigned_to or request.user.is_staff
     
-    can_confirm_resolution = (
-        request.user == ticket.creator
-        and not request.user.is_staff
-        and ticket.status is not None
-        and ticket.status.name == Status.RESOLVED
-    )
     can_cancel_ticket = (
         request.user == ticket.creator
         and not request.user.is_staff
@@ -275,7 +269,6 @@ def ticket_detail(request, ticket_id):
         'comments': comments,
         'attachments': attachments,
         'can_edit': can_edit,
-        'can_confirm_resolution': can_confirm_resolution,
         'can_cancel_ticket': can_cancel_ticket,
         'now': timezone.now(),
     }

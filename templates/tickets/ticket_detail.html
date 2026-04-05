@@ -454,29 +454,6 @@
             </div>
             {% endif %}
 
-            {% if can_confirm_resolution %}
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="fw-semibold">Подтверждение решения</div>
-                        <div class="text-muted small">Если проблема устранена, закройте тикет. Если нет, верните его в работу.</div>
-                    </div>
-                    <form method="post" action="{% url 'confirm_ticket_resolution' ticket.id %}" class="mb-2">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Подтвердить решение и закрыть тикет?')">
-                            Подтвердить решение
-                        </button>
-                    </form>
-                    <form method="post" action="{% url 'reopen_ticket_by_creator' ticket.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-warning w-100" onclick="return confirm('Проблема осталась и тикет нужно вернуть в работу?')">
-                            Проблема осталась
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
-
             {% if can_cancel_ticket %}
             <div class="card shadow-sm mb-3">
                 <div class="card-body">
