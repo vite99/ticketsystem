@@ -998,6 +998,57 @@ def change_ticket_status(request, ticket_id):
 
 
 @login_required(login_url='login')
+@require_POST
+def mark_ticket_unresolved(request, ticket_id):
+    """Отметить, что проблема не решена - вернуть в статус 'В работе'"""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    # Проверка: только создатель тикета может сказать, что проблема не решена
+    if request.user != ticket.creator:
+        messages.error(request, '❌ Только создатель тикета может отметить, что проблема не решена.')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Проверка: статус должен быть "Решен"
+    if ticket.status is None or ticket.status.name != Status.RESOLVED:
+        messages.error(request, '❌ Тикет должен быть в статусе "Решен".')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Получить комментарий пользователя
+    comment_text = request.POST.get('comment', '').strip()
+    if not comment_text:
+        messages.error(request, '❌ Пожалуйста, опишите проблему.')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Сохранить старый статус
+    old_status = ticket.status
+    
+    # Изменить статус на "В работе"
+    in_progress_status = Status.objects.get(name=Status.IN_PROGRESS)
+    ticket.status = in_progress_status
+    ticket.save()
+    
+    # Добавить комментарий
+    comment = Comment.objects.create(
+        ticket=ticket,
+        author=request.user,
+        content=comment_text,
+        is_internal=False
+    )
+    
+    # Добавить запись в историю
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_STATUS_CHANGED,
+        old_value=str(old_status),
+        new_value=str(in_progress_status)
+    )
+    
+    messages.success(request, '✅ Тикет возвращён в работу. Пожалуйста, дождитесь ответа.')
+    return redirect('ticket_detail', ticket_id=ticket_id)
+
+
+@login_required(login_url='login')
 @user_passes_test(is_admin)
 def workstation_delete(request, workstation_id):
     workstation = get_object_or_404(Workstation, id=workstation_id)
