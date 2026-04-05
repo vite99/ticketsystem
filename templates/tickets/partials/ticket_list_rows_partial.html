@@ -1,0 +1,59 @@
+{% for ticket in tickets %}
+<tr class="ticket-row" onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
+    <td>
+        <strong style="color: var(--primary);">#{{ ticket.id }}</strong>
+    </td>
+    <td>
+        <span style="font-weight: 500;">{{ ticket.title }}</span>
+    </td>
+    <td>
+        <span class="badge priority-{{ ticket.priority.name }}">
+            {{ ticket.priority.get_name_display }}
+        </span>
+    </td>
+    <td>
+        <span class="badge" style="background-color: {{ ticket.status.color }}; color: white;">
+            {{ ticket.status.get_name_display }}
+        </span>
+    </td>
+    {% if user.is_staff %}
+    <td>
+        <small>{{ ticket.creator.get_full_name|default:ticket.creator.username }}</small>
+    </td>
+    <td>
+        <small>
+            {% if ticket.workstation %}
+                <strong>{{ ticket.workstation.room }}</strong><br>
+                <span style="color: #718096;">{{ ticket.workstation.number }}</span>
+            {% else %}
+                <span class="text-muted">—</span>
+            {% endif %}
+        </small>
+    </td>
+    {% endif %}
+    <td>
+        {% if request.user.is_staff and not is_archive %}
+            {% if ticket.assigned_to %}
+                <small style="font-weight: 500;">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</small>
+            {% else %}
+                <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}" style="display:inline;" onclick="event.stopPropagation();">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'ticket_list' %}">
+                    <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" title="Назначить себе">
+                        👤 Взять
+                    </button>
+                </form>
+            {% endif %}
+        {% else %}
+            {% if ticket.assigned_to %}
+                <small style="font-weight: 500;">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</small>
+            {% else %}
+                <span class="text-muted">не назначено</span>
+            {% endif %}
+        {% endif %}
+    </td>
+    <td>
+        <small class="text-muted">{{ ticket.created_at|date:"d.m.Y" }}</small>
+    </td>
+</tr>
+{% endfor %}

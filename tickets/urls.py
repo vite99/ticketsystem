@@ -49,4 +49,6 @@ urlpatterns = [
     path('api/ticket/<int:ticket_id>/comments/', views.ticket_comments_partial, name='ticket_comments_partial'),
     path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
     path('api/new-tickets-badge/', views.new_tickets_badge, name='new_tickets_badge'),
+    path('api/ticket-list-rows/', views.ticket_list_rows_partial, name='ticket_list_rows_partial'),
+    path('api/ticket-count/', views.ticket_count_partial, name='ticket_count_partial'),
 ]

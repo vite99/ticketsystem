@@ -1100,6 +1100,93 @@ def new_tickets_badge(request):
 
 
 @login_required(login_url='login')
+def ticket_list_rows_partial(request):
+    """Partial для строк таблицы списка тикетов (live updates)"""
+    # Получить параметры фильтрации из GET параметров
+    filter_status = request.GET.get('status', '')
+    filter_priority = request.GET.get('priority', '')
+    filter_creator = request.GET.get('creator', '')
+    filter_assigned = request.GET.get('assigned', '')
+    search_query = request.GET.get('search', '').strip()
+    sort = request.GET.get('sort', '-created_at')
+    is_archive = request.GET.get('archive') == '1'
+    
+    # Начальный queryset
+    if is_archive:
+        tickets = Ticket.objects.filter(is_archived=True)
+    else:
+        tickets = Ticket.objects.filter(is_archived=False)
+    
+    # Фильтрация
+    if filter_status:
+        tickets = tickets.filter(status_id=filter_status)
+    if filter_priority:
+        tickets = tickets.filter(priority_id=filter_priority)
+    if filter_creator:
+        tickets = tickets.filter(creator_id=filter_creator)
+    if filter_assigned:
+        tickets = tickets.filter(assigned_to_id=filter_assigned)
+    
+    # Поиск
+    if search_query:
+        tickets = tickets.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
+    
+    # Оптимизация запросов
+    tickets = tickets.select_related(
+        'status', 'priority', 'creator', 'assigned_to', 'workstation'
+    ).order_by(sort)
+    
+    # Пагинация если требуется
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(tickets, 20)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'tickets': page_obj.object_list,
+        'is_archive': is_archive,
+    }
+    return render(request, 'tickets/partials/ticket_list_rows_partial.html', context)
+
+
+@login_required(login_url='login')
+def ticket_count_partial(request):
+    """Partial для счётчика количества тикетов (live updates)"""
+    is_archive = request.GET.get('archive') == '1'
+    
+    # Получить параметры фильтрации
+    filter_status = request.GET.get('status', '')
+    filter_priority = request.GET.get('priority', '')
+    filter_creator = request.GET.get('creator', '')
+    filter_assigned = request.GET.get('assigned', '')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Начальный queryset
+    if is_archive:
+        tickets = Ticket.objects.filter(is_archived=True)
+    else:
+        tickets = Ticket.objects.filter(is_archived=False)
+    
+    # Фильтрация
+    if filter_status:
+        tickets = tickets.filter(status_id=filter_status)
+    if filter_priority:
+        tickets = tickets.filter(priority_id=filter_priority)
+    if filter_creator:
+        tickets = tickets.filter(creator_id=filter_creator)
+    if filter_assigned:
+        tickets = tickets.filter(assigned_to_id=filter_assigned)
+    
+    # Поиск
+    if search_query:
+        tickets = tickets.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
+    
+    count = tickets.count()
+    
+    context = {'count': count}
+    return render(request, 'tickets/partials/ticket_count_partial.html', context)
+
+
+@login_required(login_url='login')
 @user_passes_test(is_admin)
 def workstation_delete(request, workstation_id):
     workstation = get_object_or_404(Workstation, id=workstation_id)
