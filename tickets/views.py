@@ -1113,9 +1113,9 @@ def ticket_list_rows_partial(request):
     
     # Начальный queryset
     if is_archive:
-        tickets = Ticket.objects.filter(is_archived=True)
+        tickets = Ticket.objects.filter(status__name__in=COMPLETED_STATUS_NAMES)
     else:
-        tickets = Ticket.objects.filter(is_archived=False)
+        tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
     
     # Фильтрация
     if filter_status:
@@ -1162,9 +1162,9 @@ def ticket_count_partial(request):
     
     # Начальный queryset
     if is_archive:
-        tickets = Ticket.objects.filter(is_archived=True)
+        tickets = Ticket.objects.filter(status__name__in=COMPLETED_STATUS_NAMES)
     else:
-        tickets = Ticket.objects.filter(is_archived=False)
+        tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
     
     # Фильтрация
     if filter_status:
