@@ -1,0 +1,591 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль пользователя - {{ target_user.get_full_name|default:target_user.username }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-400: #94a3b8;
+        --slate-500: #64748b;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
+        --primary-blue: #0ea5e9;
+        --primary-blue-dark: #0284c7;
+        --success-green: #10b981;
+        --warning-orange: #f59e0b;
+        --danger-red: #ef4444;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background-color: var(--slate-50);
+        color: var(--slate-700);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 20px;
+    }
+
+    /* Навигация */
+    .header-nav {
+        margin-bottom: 32px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-secondary {
+        background-color: var(--slate-200);
+        color: var(--slate-700);
+    }
+
+    .btn-secondary:hover {
+        background-color: var(--slate-300);
+    }
+
+    /* Карточка профиля */
+    .profile-card {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        margin-bottom: 32px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--slate-200);
+    }
+
+    .profile-header {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .profile-info h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--slate-900);
+        margin-bottom: 8px;
+    }
+
+    .profile-info p {
+        color: var(--slate-500);
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+
+    .profile-meta {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .meta-item {
+        padding: 12px;
+        background-color: var(--slate-50);
+        border-radius: 8px;
+    }
+
+    .meta-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--slate-500);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .meta-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--slate-700);
+    }
+
+    /* Статистика */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        border-left: 4px solid var(--slate-300);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.total {
+        border-left-color: var(--primary-blue);
+    }
+
+    .stat-card.open {
+        border-left-color: var(--warning-orange);
+    }
+
+    .stat-card.closed {
+        border-left-color: var(--success-green);
+    }
+
+    .stat-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--slate-500);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--slate-900);
+    }
+
+    /* Таблица тикетов */
+    .tickets-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        border: 1px solid var(--slate-200);
+    }
+
+    .section-header {
+        padding: 20px 24px;
+        background-color: var(--slate-50);
+        border-bottom: 1px solid var(--slate-200);
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--slate-900);
+        margin: 0;
+    }
+
+    .tickets-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .tickets-table thead th {
+        padding: 16px 24px;
+        background-color: var(--slate-50);
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--slate-600);
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--slate-200);
+    }
+
+    .tickets-table tbody tr {
+        border-bottom: 1px solid var(--slate-100);
+        transition: background-color 0.2s ease;
+    }
+
+    .tickets-table tbody tr:hover {
+        background-color: var(--slate-50);
+    }
+
+    .tickets-table tbody td {
+        padding: 16px 24px;
+        font-size: 14px;
+    }
+
+    .ticket-id {
+        font-weight: 600;
+        color: var(--primary-blue);
+    }
+
+    /* Бейджи статуса и приоритета */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .badge-status-open {
+        background-color: #dbeafe;
+        color: #0369a1;
+    }
+
+    .badge-status-in_progress {
+        background-color: #dbeafe;
+        color: #0284c7;
+    }
+
+    .badge-status-waiting {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+
+    .badge-status-resolved {
+        background-color: #dcfce7;
+        color: #15803d;
+    }
+
+    .badge-status-closed {
+        background-color: #e5e7eb;
+        color: #4b5563;
+    }
+
+    .badge-status-reopened {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    .badge-priority-low {
+        background-color: #e0e7ff;
+        color: #3730a3;
+    }
+
+    .badge-priority-medium {
+        background-color: #dbeafe;
+        color: #0369a1;
+    }
+
+    .badge-priority-high {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+
+    .badge-priority-critical {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+
+    .ticket-title {
+        color: var(--slate-700);
+        font-weight: 500;
+    }
+
+    .ticket-title:hover {
+        color: var(--primary-blue);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .ticket-date {
+        color: var(--slate-500);
+        font-size: 13px;
+    }
+
+    /* Пагинация */
+    .pagination {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+        justify-content: center;
+        padding: 24px;
+        background-color: var(--slate-50);
+        border-top: 1px solid var(--slate-200);
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        color: var(--primary-blue);
+        transition: all 0.2s ease;
+    }
+
+    .pagination a:hover {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+
+    .pagination .current {
+        background-color: var(--primary-blue);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+    }
+
+    /* Empty state */
+    .empty-state {
+        padding: 60px 24px;
+        text-align: center;
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .empty-state-text {
+        color: var(--slate-500);
+        font-size: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .profile-header {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .tickets-table {
+            font-size: 12px;
+        }
+
+        .tickets-table thead {
+            display: none;
+        }
+
+        .tickets-table tbody tr {
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border: 1px solid var(--slate-200);
+            margin-bottom: 12px;
+            border-radius: 8px;
+        }
+
+        .tickets-table tbody td {
+            padding: 0;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 12px;
+        }
+
+        .tickets-table tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: var(--slate-600);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Навигация -->
+    <div class="header-nav">
+        <a href="{% url 'ticket_list' %}" class="btn btn-secondary">← Назад к списку тикетов</a>
+    </div>
+
+    <!-- Карточка профиля -->
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ target_user.first_name|first|upper }}{{ target_user.last_name|first|upper }}
+            </div>
+            <div class="profile-info">
+                <h1>{{ target_user.get_full_name|default:target_user.username }}</h1>
+                <p>{{ target_user.email }}</p>
+                {% if target_user.is_staff %}
+                    <span class="badge badge-priority-high" style="margin-top: 8px;">👨‍💼 Администратор</span>
+                {% endif %}
+                
+                <!-- Информация из профиля -->
+                {% if profile %}
+                <div class="profile-meta">
+                    {% if profile.department %}
+                    <div class="meta-item">
+                        <div class="meta-label">Отдел</div>
+                        <div class="meta-value">{{ profile.department }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.office_room %}
+                    <div class="meta-item">
+                        <div class="meta-label">Кабинет</div>
+                        <div class="meta-value">{{ profile.office_room }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.phone %}
+                    <div class="meta-item">
+                        <div class="meta-label">Телефон</div>
+                        <div class="meta-value">{{ profile.phone }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.workstation %}
+                    <div class="meta-item">
+                        <div class="meta-label">Рабочее место</div>
+                        <div class="meta-value">{{ profile.workstation.room }} - {{ profile.workstation.number }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.is_approved %}
+                    <div class="meta-item">
+                        <div class="meta-label">Статус</div>
+                        <div class="meta-value" style="color: var(--success-green);">✓ Одобрен</div>
+                    </div>
+                    {% else %}
+                    <div class="meta-item">
+                        <div class="meta-label">Статус</div>
+                        <div class="meta-value" style="color: var(--warning-orange);">⏳ На рассмотрении</div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-label">Всего тикетов</div>
+            <div class="stat-value">{{ total_tickets }}</div>
+        </div>
+        <div class="stat-card open">
+            <div class="stat-label">Открыто</div>
+            <div class="stat-value">{{ open_tickets }}</div>
+        </div>
+        <div class="stat-card closed">
+            <div class="stat-label">Закрыто</div>
+            <div class="stat-value">{{ closed_tickets }}</div>
+        </div>
+    </div>
+
+    <!-- Таблица тикетов -->
+    <div class="tickets-section">
+        <div class="section-header">
+            <h2>📋 История тикетов</h2>
+        </div>
+
+        {% if all_tickets %}
+            <table class="tickets-table">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Заголовок</th>
+                        <th style="width: 120px;">Статус</th>
+                        <th style="width: 120px;">Приоритет</th>
+                        <th style="width: 140px;">Дата создания</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in all_tickets %}
+                    <tr>
+                        <td data-label="ID">
+                            <span class="ticket-id">
+                                <a href="{% url 'ticket_detail' ticket.id %}">#{{ ticket.id }}</a>
+                            </span>
+                        </td>
+                        <td data-label="Заголовок">
+                            <a href="{% url 'ticket_detail' ticket.id %}" class="ticket-title">
+                                {{ ticket.title }}
+                            </a>
+                        </td>
+                        <td data-label="Статус">
+                            {% if ticket.status %}
+                            <span class="badge badge-status-{{ ticket.status.name|lower }}">
+                                {{ ticket.status.get_name_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge">Не определен</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Приоритет">
+                            {% if ticket.priority %}
+                            <span class="badge badge-priority-{{ ticket.priority.name|lower }}">
+                                {{ ticket.priority.get_name_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge">Не определен</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Дата">
+                            <span class="ticket-date">
+                                {{ ticket.created_at|date:"d.m.Y H:i" }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Пагинация -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">Первая</a>
+                    <a href="?page={{ page_obj.previous_page_number }}">← Предыдущая</a>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                        <span class="current">{{ num }}</span>
+                    {% else %}
+                        <a href="?page={{ num }}">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}">Следующая →</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-text">
+                    У этого пользователя нет тикетов
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

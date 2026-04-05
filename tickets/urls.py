@@ -36,6 +36,7 @@ urlpatterns = [
     path('users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
     path('users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
     path('users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
+    path('users/<int:user_id>/', views.user_detail_admin, name='user_detail_admin'),
     path('workstations/', views.workstation_list, name='workstation_list'),
     path('workstations/create/', views.workstation_create, name='workstation_create'),
     path('workstations/<int:workstation_id>/edit/', views.workstation_edit, name='workstation_edit'),

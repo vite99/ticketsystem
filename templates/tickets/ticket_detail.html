@@ -172,7 +172,15 @@
                     <div class="meta-label">
                         <i class="fas fa-user"></i> Создатель
                     </div>
-                    <div class="meta-value">{{ ticket.creator.get_full_name|default:ticket.creator.username }}</div>
+                    <div class="meta-value">
+                        {% if user.is_staff %}
+                            <a href="{% url 'user_detail_admin' ticket.creator.id %}" style="color: inherit; text-decoration: none;">
+                                {{ ticket.creator.get_full_name|default:ticket.creator.username }}
+                            </a>
+                        {% else %}
+                            {{ ticket.creator.get_full_name|default:ticket.creator.username }}
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="meta-item">
@@ -181,7 +189,13 @@
                     </div>
                     <div class="meta-value">
                         {% if ticket.assigned_to %}
-                            {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                            {% if user.is_staff %}
+                                <a href="{% url 'user_detail_admin' ticket.assigned_to.id %}" style="color: inherit; text-decoration: none;">
+                                    {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                </a>
+                            {% else %}
+                                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                            {% endif %}
                         {% else %}
                             <span class="text-muted">Не назначено</span>
                         {% endif %}
