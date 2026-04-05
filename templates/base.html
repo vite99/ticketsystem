@@ -403,6 +403,76 @@
             opacity: 1;
             transition: opacity 0.2s ease-in;
         }
+
+        /* Корпоративные стили для заголовка и бейджей */
+        .card-header {
+            background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--primary-soft) 100%);
+            border-bottom: 2px solid var(--border-subtle);
+            transition: all var(--transition-fast);
+        }
+
+        .card-header h5 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--fg-primary);
+        }
+
+        .card-header h5 i {
+            color: var(--primary);
+            font-size: 1.35rem;
+        }
+
+        /* Стиль для счётчика тикетов */
+        #ticket-count-container {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+            color: white !important;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+            transition: all var(--transition-fast);
+            font-size: 0.95rem;
+            letter-spacing: -0.01em;
+        }
+
+        #ticket-count-container:hover {
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+            transform: translateY(-2px);
+        }
+
+        /* Анимация для бейджей */
+        .badge {
+            font-weight: 500;
+            padding: 0.4em 0.7em;
+            border-radius: 6px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Для тёмной темы */
+        body[data-theme="dark"] .card-header {
+            background: linear-gradient(135deg, var(--bg-elevated) 0%, rgba(96, 165, 250, 0.1) 100%);
+            border-bottom-color: var(--border-strong);
+        }
+
+        body[data-theme="dark"] .card-header h5 {
+            color: var(--fg-primary);
+        }
+
+        body[data-theme="dark"] #ticket-count-container {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
+            box-shadow: 0 4px 12px rgba(96, 165, 250, 0.25);
+        }
+
+        body[data-theme="dark"] #ticket-count-container:hover {
+            box-shadow: 0 6px 20px rgba(96, 165, 250, 0.35);
+        }
     </style>
 </head>
 <body data-theme="light">

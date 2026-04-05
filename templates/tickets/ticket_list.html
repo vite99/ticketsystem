@@ -204,8 +204,7 @@
             <span id="ticket-count-container" 
                 hx-get="{% url 'ticket_count_partial' %}{% if is_archive %}?archive=1{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}"
                 hx-trigger="every 20s"
-                hx-swap="innerHTML swap:0.3s"
-                style="background-color: var(--primary); display: inline-block; padding: 6px 12px; border-radius: 6px; color: white; font-weight: 500;">
+                hx-swap="innerHTML swap:0.3s">
                 {{ page_obj.paginator.count }}
             </span>
         </div>
