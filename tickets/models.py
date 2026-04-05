@@ -8,25 +8,25 @@ from .notifications import send_ticket_notifications
 
 
 class Priority(models.Model):
-    """РџСЂРёРѕСЂРёС‚РµС‚ С‚РёРєРµС‚Р°"""
+    """Приоритет тикета"""
     LOW = 'low'
     MEDIUM = 'medium'
     HIGH = 'high'
     CRITICAL = 'critical'
     
     PRIORITY_CHOICES = [
-        (LOW, 'РќРёР·РєРёР№'),
-        (MEDIUM, 'РЎСЂРµРґРЅРёР№'),
-        (HIGH, 'Р’С‹СЃРѕРєРёР№'),
-        (CRITICAL, 'РљСЂРёС‚РёС‡РµСЃРєРёР№'),
+        (LOW, 'Низкий'),
+        (MEDIUM, 'Средний'),
+        (HIGH, 'Высокий'),
+        (CRITICAL, 'Критический'),
     ]
     
     name = models.CharField(max_length=20, choices=PRIORITY_CHOICES, unique=True)
-    color = models.CharField(max_length=7, default='#000000', help_text='HEX С†РІРµС‚')
+    color = models.CharField(max_length=7, default='#000000', help_text='HEX цвет')
     
     class Meta:
-        verbose_name = 'РџСЂРёРѕСЂРёС‚РµС‚'
-        verbose_name_plural = 'РџСЂРёРѕСЂРёС‚РµС‚С‹'
+        verbose_name = 'Приоритет'
+        verbose_name_plural = 'Приоритеты'
         ordering = ['-name']
     
     def __str__(self):
@@ -34,7 +34,7 @@ class Priority(models.Model):
 
 
 class Status(models.Model):
-    """РЎС‚Р°С‚СѓСЃ С‚РёРєРµС‚Р°"""
+    """Статус тикета"""
     OPEN = 'open'
     IN_PROGRESS = 'in_progress'
     WAITING = 'waiting'
@@ -43,21 +43,21 @@ class Status(models.Model):
     REOPENED = 'reopened'
     
     STATUS_CHOICES = [
-        (OPEN, 'РћС‚РєСЂС‹С‚'),
-        (IN_PROGRESS, 'Р’ СЂР°Р±РѕС‚Рµ'),
-        (WAITING, 'РћР¶РёРґР°РЅРёРµ'),
-        (RESOLVED, 'Р РµС€РµРЅ'),
-        (CLOSED, 'Р—Р°РєСЂС‹С‚'),
-        (REOPENED, 'РџРµСЂРµРѕС‚РєСЂС‹С‚'),
+        (OPEN, 'Открыт'),
+        (IN_PROGRESS, 'В работе'),
+        (WAITING, 'Ожидание'),
+        (RESOLVED, 'Решен'),
+        (CLOSED, 'Закрыт'),
+        (REOPENED, 'Переоткрыт'),
     ]
     
     name = models.CharField(max_length=20, choices=STATUS_CHOICES, unique=True)
-    color = models.CharField(max_length=7, default='#808080', help_text='HEX С†РІРµС‚')
-    is_final = models.BooleanField(default=False, help_text='Р¤РёРЅР°Р»СЊРЅС‹Р№ СЃС‚Р°С‚СѓСЃ')
+    color = models.CharField(max_length=7, default='#808080', help_text='HEX цвет')
+    is_final = models.BooleanField(default=False, help_text='Финальный статус')
     
     class Meta:
-        verbose_name = 'РЎС‚Р°С‚СѓСЃ'
-        verbose_name_plural = 'РЎС‚Р°С‚СѓСЃС‹'
+        verbose_name = 'Статус'
+        verbose_name_plural = 'Статусы'
         ordering = ['name']
     
     def __str__(self):

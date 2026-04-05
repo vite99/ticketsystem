@@ -372,6 +372,8 @@ def assign_ticket_to_me(request, ticket_id):
 @login_required(login_url='login')
 def add_comment(request, ticket_id):
     """Р”РѕР±Р°РІР»РµРЅРёРµ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ Рє С‚РёРєРµС‚Сѓ"""
+    from .notifications import send_comment_notification
+
     ticket = get_object_or_404(Ticket, id=ticket_id)
     
     if request.method == 'POST':
@@ -381,6 +383,7 @@ def add_comment(request, ticket_id):
             comment.ticket = ticket
             comment.author = request.user
             comment.save()
+            send_comment_notification(comment)
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = CommentForm()

@@ -124,10 +124,9 @@
 
 {% block content %}
 <div class="container-fluid px-0">
-    <!-- Заголовок -->
     <div class="page-header-section">
         <div>
-            <h1>📋 Список тикетов</h1>
+            <h1>Список тикетов</h1>
             <p class="text-muted mb-0">Всего: <strong>{{ page_obj.paginator.count }}</strong></p>
         </div>
         {% if user.is_authenticated %}
@@ -137,25 +136,25 @@
         {% endif %}
     </div>
 
-    <!-- Фильтры -->
     <div class="d-flex gap-2 mb-3">
         <a href="{% url 'ticket_list' %}" class="btn {% if not is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-            <i class="fas fa-list"></i> Active
+            <i class="fas fa-list"></i> Активные
         </a>
         <a href="{% url 'ticket_archive' %}" class="btn {% if is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-            <i class="fas fa-archive"></i> Archive
+            <i class="fas fa-archive"></i> Архив
         </a>
     </div>
+
     <div class="filter-card">
         <form method="get" class="filter-row">
             <div class="filter-group">
                 <label for="search">Поиск</label>
-                <input 
-                    type="text" 
-                    name="q" 
+                <input
+                    type="text"
+                    name="q"
                     id="search"
-                    class="form-control" 
-                    placeholder="Введите название..." 
+                    class="form-control"
+                    placeholder="Введите название..."
                     value="{{ search_query }}"
                 >
             </div>
@@ -192,7 +191,6 @@
         </form>
     </div>
 
-    <!-- Таблица тикетов -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
@@ -285,7 +283,6 @@
         {% endif %}
     </div>
 
-    <!-- Пагинация -->
     {% if page_obj.has_other_pages %}
     <nav class="d-flex justify-content-center">
         <ul class="pagination">

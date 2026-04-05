@@ -41,6 +41,9 @@
                         <div class="form-group mb-3">
                             <label for="{{ form.office_room.id_for_label }}">Кабинет сотрудника</label>
                             {{ form.office_room }}
+                            <small class="text-muted">
+                                Заполняется автоматически при выборе рабочего места, либо вручную
+                            </small>
                             {% if form.office_room.errors %}
                             <div class="invalid-feedback d-block">{{ form.office_room.errors }}</div>
                             {% endif %}
@@ -81,6 +84,9 @@
                             <select id="workstation_select" class="form-control">
                                 <option value="">-- Сначала выберите кабинет --</option>
                             </select>
+                            <div id="ws_summary" class="mt-2" style="display:none;">
+                                <span class="badge bg-success fs-6" id="ws_summary_text"></span>
+                            </div>
                             {% if user.profile.workstation %}
                             <small class="text-muted">Текущее: {{ user.profile.workstation }}</small>
                             {% endif %}
@@ -112,11 +118,18 @@ const wsSelect = document.getElementById('workstation_select');
 const wsInput = document.getElementById('workstation_id_input');
 const currentWsId = "{{ user.profile.workstation.id|default:'' }}";
 const endpoint = "{% url 'workstations_by_room' %}";
+const officeRoomInput = document.querySelector('input[name="office_room"]');
+const originalOfficeRoom = officeRoomInput ? officeRoomInput.value : '';
+const wsSummary = document.getElementById('ws_summary');
+const wsSummaryText = document.getElementById('ws_summary_text');
 
 function loadWorkstations(room, selectId) {
     if (!room) {
         wsSelect.innerHTML = '<option value="">-- Сначала выберите кабинет --</option>';
         wsInput.value = '';
+        if (wsSummary) {
+            wsSummary.style.display = 'none';
+        }
         return;
     }
 
@@ -134,10 +147,19 @@ function loadWorkstations(room, selectId) {
                 wsSelect.appendChild(option);
             });
             wsInput.value = wsSelect.value;
+            if (wsSelect.value && wsSummary && wsSummaryText) {
+                wsSummaryText.textContent = '✅ ' + wsSelect.options[wsSelect.selectedIndex].text;
+                wsSummary.style.display = 'block';
+            } else if (wsSummary) {
+                wsSummary.style.display = 'none';
+            }
         })
         .catch(() => {
             wsSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
             wsInput.value = '';
+            if (wsSummary) {
+                wsSummary.style.display = 'none';
+            }
         });
 }
 
@@ -148,10 +170,27 @@ if (roomSelect && wsSelect && wsInput) {
 
     roomSelect.addEventListener('change', () => {
         loadWorkstations(roomSelect.value, null);
+        if (officeRoomInput && roomSelect.value) {
+            officeRoomInput.value = roomSelect.value;
+        } else if (officeRoomInput && !roomSelect.value) {
+            officeRoomInput.value = originalOfficeRoom;
+        }
     });
 
     wsSelect.addEventListener('change', () => {
         wsInput.value = wsSelect.value;
+        if (officeRoomInput && roomSelect.value) {
+            officeRoomInput.value = roomSelect.value;
+        }
+        if (wsSelect.value) {
+            wsSummaryText.textContent = '✅ ' + wsSelect.options[wsSelect.selectedIndex].text;
+            wsSummary.style.display = 'block';
+        } else {
+            wsSummary.style.display = 'none';
+            if (officeRoomInput) {
+                officeRoomInput.value = originalOfficeRoom;
+            }
+        }
     });
 }
 </script>
