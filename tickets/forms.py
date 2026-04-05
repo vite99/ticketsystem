@@ -37,7 +37,9 @@ class TicketForm(forms.ModelForm):
         choices=TICKET_TOPIC_PRESETS,
         required=False,
         label='Тема',
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        widget=forms.Select(attrs={
+            'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+        }),
     )
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
@@ -50,14 +52,21 @@ class TicketForm(forms.ModelForm):
         model = Ticket
         fields = ['title', 'description', 'assigned_to', 'priority', 'status', 'tags', 'workstation', 'due_date', 'estimated_hours']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Заголовок тикета'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Подробное описание проблемы'}),
-            'assigned_to': forms.Select(attrs={'class': 'form-control'}),
-            'priority': forms.Select(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'workstation': forms.Select(attrs={'class': 'form-control'}),
-            'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
-            'estimated_hours': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Расчётное количество часов'}),
+            'title': forms.TextInput(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+                'placeholder': 'Заголовок тикета',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+                'rows': 5,
+                'placeholder': 'Подробное описание проблемы',
+            }),
+            'assigned_to': forms.Select(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'}),
+            'priority': forms.Select(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'}),
+            'status': forms.Select(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'}),
+            'workstation': forms.Select(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'}),
+            'due_date': forms.DateTimeInput(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20', 'type': 'datetime-local'}),
+            'estimated_hours': forms.NumberInput(attrs={'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20', 'placeholder': 'Например: 2'}),
         }
         labels = {
             'title': 'Заголовок',
@@ -66,7 +75,7 @@ class TicketForm(forms.ModelForm):
             'priority': 'Приоритет',
             'status': 'Статус',
             'workstation': 'Рабочее место/Компьютер',
-            'due_date': 'Срок выполнения',
+            'due_date': 'Желаемый срок решения',
             'estimated_hours': 'Расчётные часы',
         }
 
@@ -93,25 +102,41 @@ class TicketFormUser(forms.ModelForm):
         choices=TICKET_TOPIC_PRESETS,
         required=False,
         label='Тема',
-        widget=forms.Select(attrs={'class': 'form-control'}),
+        widget=forms.Select(attrs={
+            'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+        }),
     )
 
     class Meta:
         model = Ticket
         fields = ['title', 'description', 'user_urgency', 'workstation', 'due_date']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Заголовок тикета'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Подробное описание проблемы'}),
-            'user_urgency': forms.Select(attrs={'class': 'form-control'}),
-            'workstation': forms.Select(attrs={'class': 'form-control'}),
-            'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
+            'title': forms.TextInput(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+                'placeholder': 'Заголовок тикета',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+                'rows': 5,
+                'placeholder': 'Подробное описание проблемы',
+            }),
+            'user_urgency': forms.Select(attrs={
+                'class': 'hidden',
+            }),
+            'workstation': forms.Select(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+            }),
+            'due_date': forms.DateTimeInput(attrs={
+                'class': 'block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+                'type': 'datetime-local',
+            }),
         }
         labels = {
             'title': 'Заголовок',
             'description': 'Описание',
             'user_urgency': 'Срочность',
             'workstation': 'Рабочее место/Компьютер',
-            'due_date': 'Срок выполнения',
+            'due_date': 'Желаемый срок решения',
         }
 
     def __init__(self, *args, **kwargs):

@@ -13,8 +13,14 @@ urlpatterns = [
     path('create/', views.ticket_create, name='ticket_create'),
     path('<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
     path('<int:ticket_id>/edit/', views.ticket_edit, name='ticket_edit'),
+    path('<int:ticket_id>/confirm-resolution/', views.confirm_ticket_resolution, name='confirm_ticket_resolution'),
+    path('<int:ticket_id>/reopen-by-creator/', views.reopen_ticket_by_creator, name='reopen_ticket_by_creator'),
+    path('<int:ticket_id>/cancel-by-creator/', views.cancel_ticket_by_creator, name='cancel_ticket_by_creator'),
     path('<int:ticket_id>/assign-to-me/', views.assign_ticket_to_me, name='assign_ticket_to_me'),
+    path('<int:ticket_id>/unassign/', views.unassign_ticket, name='unassign_ticket'),
     path('api/new-tickets/', views.get_new_tickets, name='get_new_tickets'),
+    path('api/new-comments/', views.get_new_comment_notifications, name='get_new_comment_notifications'),
+    path('api/browser-notifications/', views.get_new_browser_notifications, name='get_new_browser_notifications'),
     path('api/workstations-by-room/', views.workstations_by_room, name='workstations_by_room'),
     
     # Комментарии

@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db.utils import OperationalError, ProgrammingError
 from itertools import groupby
-from .models import Ticket, Comment, Status, Priority, Tag, UserProfile, Workstation
+from .models import Ticket, Comment, Status, Priority, Tag, UserProfile, Workstation, TicketHistory, Attachment
 from .forms import (
     TicketForm,
     TicketFormUser,
@@ -56,7 +56,7 @@ def register_view(request):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            messages.success(request, 'Р РµРіРёСЃС‚СЂР°С†РёСЏ СѓСЃРїРµС€РЅР°! РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РІРѕР№РґРёС‚Рµ РІ СЃРёСЃС‚РµРјСѓ.')
+            messages.success(request, 'Регистрация успешна! Пожалуйста, войдите в систему.')
             return redirect('login')
     else:
         form = RegistrationForm()
@@ -86,6 +86,106 @@ def require_approval(view_func):
     return wrapped_view
 
 
+def _apply_ticket_filters_and_sorting(queryset, request, *, is_archive):
+    """Apply search, filters, sorting and build query-string helpers for templates."""
+    search_query = (request.GET.get('q') or '').strip()
+    status_id = (request.GET.get('status') or '').strip()
+    priority_id = (request.GET.get('priority') or '').strip()
+    current_sort = (request.GET.get('sort') or 'id').strip()
+
+    if status_id:
+        queryset = queryset.filter(status_id=status_id)
+
+    if priority_id:
+        queryset = queryset.filter(priority_id=priority_id)
+
+    if search_query:
+        combined_filter = (
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(creator__username__icontains=search_query) |
+            Q(creator__first_name__icontains=search_query) |
+            Q(creator__last_name__icontains=search_query) |
+            Q(assigned_to__username__icontains=search_query) |
+            Q(assigned_to__first_name__icontains=search_query) |
+            Q(assigned_to__last_name__icontains=search_query) |
+            Q(tags__name__icontains=search_query) |
+            Q(priority__name__icontains=search_query) |
+            Q(status__name__icontains=search_query) |
+            Q(room__icontains=search_query) |
+            Q(workstation__room__icontains=search_query) |
+            Q(workstation__number__icontains=search_query) |
+            Q(workstation__location__icontains=search_query)
+        )
+
+        normalized_query = search_query.lstrip('#')
+        if normalized_query.isdigit():
+            combined_filter |= Q(id=int(normalized_query))
+
+        queryset = queryset.filter(combined_filter).distinct()
+
+    if request.GET.get('my_tickets'):
+        queryset = queryset.filter(assigned_to=request.user)
+
+    allowed_sort_fields = {
+        'id': 'id',
+        'title': 'title',
+        'priority': 'priority__name',
+        'status': 'status__name',
+        'created_at': 'created_at',
+        'due_date': 'due_date',
+    }
+
+    sort_field = current_sort.lstrip('-')
+    if sort_field not in allowed_sort_fields:
+        current_sort = 'id'
+        sort_field = 'id'
+
+    order_by = allowed_sort_fields[sort_field]
+
+    # If the sort param already starts with "-", the same column was clicked again
+    # and the ordering must be toggled to descending.
+    if current_sort.startswith('-'):
+        order_by = f'-{order_by}'
+
+    queryset = queryset.order_by(order_by, '-id')
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+    page_query_string = query_params.urlencode()
+
+    sort_query_params = request.GET.copy()
+    sort_query_params.pop('page', None)
+    sort_query_params.pop('sort', None)
+    sort_query_string = sort_query_params.urlencode()
+
+    def next_sort(field_name):
+        if current_sort == field_name:
+            return f'-{field_name}'
+        if current_sort == f'-{field_name}':
+            return field_name
+        return field_name
+
+    context = {
+        'search_query': search_query,
+        'selected_status': status_id,
+        'selected_priority': priority_id,
+        'current_filters': request.GET,
+        'current_sort': current_sort,
+        'query_string': page_query_string,
+        'sort_query_string': sort_query_string,
+        'next_sort_id': next_sort('id'),
+        'next_sort_title': next_sort('title'),
+        'next_sort_priority': next_sort('priority'),
+        'next_sort_status': next_sort('status'),
+        'next_sort_created_at': next_sort('created_at'),
+        'next_sort_due_date': next_sort('due_date'),
+        'status_choices': Status.objects.filter(name__in=COMPLETED_STATUS_NAMES).order_by('name') if is_archive else Status.objects.exclude(name__in=COMPLETED_STATUS_NAMES).order_by('name'),
+        'priority_choices': Priority.objects.all().order_by('name'),
+    }
+    return queryset, context
+
+
 @require_approval
 def ticket_list(request):
     """РЎРїРёСЃРѕРє РІСЃРµС… С‚РёРєРµС‚РѕРІ СЃ С„РёР»СЊС‚СЂР°С†РёРµР№"""
@@ -106,83 +206,20 @@ def ticket_list(request):
             cache.delete(cache_key)
     
     tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
-    
-    # Р¤РёР»СЊС‚СЂР°С†РёСЏ РїРѕ СЃС‚Р°С‚СѓСЃСѓ
-    status_id = request.GET.get('status')
-    if status_id:
-        tickets = tickets.filter(status_id=status_id)
-    
-    # Р¤РёР»СЊС‚СЂР°С†РёСЏ РїРѕ РїСЂРёРѕСЂРёС‚РµС‚Сѓ
-    priority_id = request.GET.get('priority')
-    if priority_id:
-        tickets = tickets.filter(priority_id=priority_id)
-    
-    # РџРѕРёСЃРє РїРѕ РЅР°Р·РІР°РЅРёСЋ РёР»Рё РѕРїРёСЃР°РЅРёСЋ
-    search_query = (request.GET.get('q') or '').strip()
-    if search_query:
-        combined_filter = (
-            Q(title__icontains=search_query) |
-            Q(description__icontains=search_query) |
-            Q(creator__username__icontains=search_query) |
-            Q(creator__first_name__icontains=search_query) |
-            Q(creator__last_name__icontains=search_query) |
-            Q(assigned_to__username__icontains=search_query) |
-            Q(assigned_to__first_name__icontains=search_query) |
-            Q(assigned_to__last_name__icontains=search_query) |
-            Q(tags__name__icontains=search_query) |
-            Q(priority__name__icontains=search_query) |
-            Q(status__name__icontains=search_query) |
-            Q(room__icontains=search_query) |
-            Q(workstation__room__icontains=search_query) |
-            Q(workstation__number__icontains=search_query) |
-            Q(workstation__location__icontains=search_query)
-        )
+    tickets, list_context = _apply_ticket_filters_and_sorting(tickets, request, is_archive=False)
 
-        normalized_query = search_query.lstrip('#')
-        if normalized_query.isdigit():
-            combined_filter |= Q(id=int(normalized_query))
-
-        terms = [term for term in search_query.split() if term]
-        for term in terms:
-            term_filter = (
-                Q(title__icontains=term) |
-                Q(description__icontains=term) |
-                Q(creator__username__icontains=term) |
-                Q(creator__first_name__icontains=term) |
-                Q(creator__last_name__icontains=term) |
-                Q(assigned_to__username__icontains=term) |
-                Q(assigned_to__first_name__icontains=term) |
-                Q(assigned_to__last_name__icontains=term) |
-                Q(tags__name__icontains=term) |
-                Q(workstation__room__icontains=term) |
-                Q(workstation__number__icontains=term) |
-                Q(workstation__location__icontains=term)
-            )
-            combined_filter &= term_filter
-
-        tickets = tickets.filter(combined_filter).distinct()
-    
-    # Р¤РёР»СЊС‚СЂР°С†РёСЏ РїРѕ РЅР°Р·РЅР°С‡РµРЅРёСЋ (РјРѕРё С‚РёРєРµС‚С‹)
-    if request.GET.get('my_tickets'):
-        tickets = tickets.filter(assigned_to=request.user)
-    
-    # РџР°РіРёРЅР°С†РёСЏ
     paginator = Paginator(tickets, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    query_params = request.GET.copy()
-    query_params.pop('page', None)
 
     context = {
         'page_obj': page_obj,
         'tickets': page_obj.object_list,
-        'statuses': Status.objects.exclude(name__in=COMPLETED_STATUS_NAMES),
-        'priorities': Priority.objects.all(),
-        'search_query': search_query,
-        'query_string': query_params.urlencode(),
+        'statuses': list_context['status_choices'],
+        'priorities': list_context['priority_choices'],
         'is_archive': False,
     }
+    context.update(list_context)
     return render(request, 'tickets/ticket_list.html', context)
 
 
@@ -193,77 +230,20 @@ def ticket_archive(request):
     if not request.user.is_staff:
         tickets = tickets.filter(creator=request.user)
 
-    status_id = request.GET.get('status')
-    if status_id:
-        tickets = tickets.filter(status_id=status_id)
-
-    priority_id = request.GET.get('priority')
-    if priority_id:
-        tickets = tickets.filter(priority_id=priority_id)
-
-    search_query = (request.GET.get('q') or '').strip()
-    if search_query:
-        combined_filter = (
-            Q(title__icontains=search_query) |
-            Q(description__icontains=search_query) |
-            Q(creator__username__icontains=search_query) |
-            Q(creator__first_name__icontains=search_query) |
-            Q(creator__last_name__icontains=search_query) |
-            Q(assigned_to__username__icontains=search_query) |
-            Q(assigned_to__first_name__icontains=search_query) |
-            Q(assigned_to__last_name__icontains=search_query) |
-            Q(tags__name__icontains=search_query) |
-            Q(priority__name__icontains=search_query) |
-            Q(status__name__icontains=search_query) |
-            Q(room__icontains=search_query) |
-            Q(workstation__room__icontains=search_query) |
-            Q(workstation__number__icontains=search_query) |
-            Q(workstation__location__icontains=search_query)
-        )
-
-        normalized_query = search_query.lstrip('#')
-        if normalized_query.isdigit():
-            combined_filter |= Q(id=int(normalized_query))
-
-        terms = [term for term in search_query.split() if term]
-        for term in terms:
-            term_filter = (
-                Q(title__icontains=term) |
-                Q(description__icontains=term) |
-                Q(creator__username__icontains=term) |
-                Q(creator__first_name__icontains=term) |
-                Q(creator__last_name__icontains=term) |
-                Q(assigned_to__username__icontains=term) |
-                Q(assigned_to__first_name__icontains=term) |
-                Q(assigned_to__last_name__icontains=term) |
-                Q(tags__name__icontains=term) |
-                Q(workstation__room__icontains=term) |
-                Q(workstation__number__icontains=term) |
-                Q(workstation__location__icontains=term)
-            )
-            combined_filter &= term_filter
-
-        tickets = tickets.filter(combined_filter).distinct()
-
-    if request.GET.get('my_tickets'):
-        tickets = tickets.filter(assigned_to=request.user)
+    tickets, list_context = _apply_ticket_filters_and_sorting(tickets, request, is_archive=True)
 
     paginator = Paginator(tickets, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    query_params = request.GET.copy()
-    query_params.pop('page', None)
-
     context = {
         'page_obj': page_obj,
         'tickets': page_obj.object_list,
-        'statuses': Status.objects.filter(name__in=COMPLETED_STATUS_NAMES),
-        'priorities': Priority.objects.all(),
-        'search_query': search_query,
-        'query_string': query_params.urlencode(),
+        'statuses': list_context['status_choices'],
+        'priorities': list_context['priority_choices'],
         'is_archive': True,
     }
+    context.update(list_context)
     return render(request, 'tickets/ticket_list.html', context)
 
 
@@ -277,11 +257,27 @@ def ticket_detail(request, ticket_id):
     # РџСЂРѕРІРµСЂРєР° РїСЂР°РІ РґРѕСЃС‚СѓРїР°
     can_edit = request.user == ticket.creator or request.user == ticket.assigned_to or request.user.is_staff
     
+    can_confirm_resolution = (
+        request.user == ticket.creator
+        and not request.user.is_staff
+        and ticket.status is not None
+        and ticket.status.name == Status.RESOLVED
+    )
+    can_cancel_ticket = (
+        request.user == ticket.creator
+        and not request.user.is_staff
+        and ticket.status is not None
+        and ticket.status.name == Status.OPEN
+    )
+
     context = {
         'ticket': ticket,
         'comments': comments,
         'attachments': attachments,
         'can_edit': can_edit,
+        'can_confirm_resolution': can_confirm_resolution,
+        'can_cancel_ticket': can_cancel_ticket,
+        'now': timezone.now(),
     }
     return render(request, 'tickets/ticket_detail.html', context)
 
@@ -293,7 +289,7 @@ def ticket_create(request):
     form_class = TicketForm if request.user.is_staff else TicketFormUser
     
     if request.method == 'POST':
-        form = form_class(request.POST)
+        form = form_class(request.POST, request.FILES)
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.creator = request.user
@@ -311,14 +307,20 @@ def ticket_create(request):
             ticket.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()  # РЎРѕС…СЂР°РЅРёС‚СЊ M2M РѕС‚РЅРѕС€РµРЅРёСЏ (С‚РµРіРё) РµСЃР»Рё РѕРЅРё РµСЃС‚СЊ
+            for uploaded_file in request.FILES.getlist('attachments'):
+                Attachment.objects.create(
+                    ticket=ticket,
+                    file=uploaded_file,
+                    uploaded_by=request.user,
+                )
             
             # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± СѓСЃРїРµС€РЅРѕРј СЃРѕР·РґР°РЅРёРё
-            messages.success(request, f'вњ… РўРёРєРµС‚ #{ticket.id} СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ!')
+            messages.success(request, f'✅ Тикет #{ticket.id} успешно создан!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = form_class()
     
-    return render(request, 'tickets/ticket_form.html', {'form': form, 'title': 'РЎРѕР·РґР°С‚СЊ С‚РёРєРµС‚'})
+    return render(request, 'tickets/ticket_form.html', {'form': form, 'title': 'Создать тикет'})
 
 
 @login_required(login_url='login')
@@ -334,7 +336,7 @@ def ticket_edit(request, ticket_id):
     form_class = TicketForm if request.user.is_staff else TicketFormUser
     
     if request.method == 'POST':
-        form = form_class(request.POST, instance=ticket)
+        form = form_class(request.POST, request.FILES, instance=ticket)
         if form.is_valid():
             ticket = form.save(commit=False)
             if not request.user.is_staff:
@@ -347,14 +349,137 @@ def ticket_edit(request, ticket_id):
             ticket.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()
+            attachment_ids_to_delete = request.POST.getlist('delete_attachments')
+            if attachment_ids_to_delete:
+                attachments_to_delete = ticket.attachments.filter(id__in=attachment_ids_to_delete)
+                for attachment in attachments_to_delete:
+                    attachment.file.delete(save=False)
+                    attachment.delete()
+            for uploaded_file in request.FILES.getlist('attachments'):
+                Attachment.objects.create(
+                    ticket=ticket,
+                    file=uploaded_file,
+                    uploaded_by=request.user,
+                )
             
             # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± СѓСЃРїРµС€РЅРѕРј РѕР±РЅРѕРІР»РµРЅРёРё
-            messages.success(request, f'вњ… РўРёРєРµС‚ #{ticket.id} СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»С‘РЅ!')
+            messages.success(request, f'✅ Тикет #{ticket.id} успешно обновлен!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
         form = form_class(instance=ticket)
     
-    return render(request, 'tickets/ticket_form.html', {'form': form, 'ticket': ticket, 'title': 'Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ С‚РёРєРµС‚'})
+    return render(
+        request,
+        'tickets/ticket_edit.html',
+        {
+            'form': form,
+            'ticket': ticket,
+            'existing_attachments': ticket.attachments.all(),
+            'title': 'Редактировать тикет',
+        },
+    )
+
+
+@login_required(login_url='login')
+@require_POST
+def confirm_ticket_resolution(request, ticket_id):
+    """Подтверждение решения тикета его создателем."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.creator and not request.user.is_staff:
+        messages.error(request, '❌ Только создатель тикета может подтвердить решение.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    if not ticket.status or ticket.status.name != Status.RESOLVED:
+        messages.error(request, '❌ Подтверждение доступно только для тикетов со статусом "Решен".')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    closed_status = Status.objects.filter(name=Status.CLOSED).first()
+    if not closed_status:
+        messages.error(request, '❌ Статус "Закрыт" не найден.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_STATUS_CHANGED,
+        old_value=ticket.status.get_name_display(),
+        new_value=closed_status.get_name_display(),
+    )
+
+    ticket.status = closed_status
+    ticket.save(update_fields=['status', 'updated_at', 'closed_at'])
+    messages.success(request, f'Тикет #{ticket.id} закрыт после подтверждения решения.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
+
+
+@login_required(login_url='login')
+@require_POST
+def reopen_ticket_by_creator(request, ticket_id):
+    """Переоткрытие решенного тикета его создателем."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.creator and not request.user.is_staff:
+        messages.error(request, '❌ Только создатель тикета может сообщить, что проблема осталась.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    if not ticket.status or ticket.status.name != Status.RESOLVED:
+        messages.error(request, '❌ Переоткрытие доступно только для тикетов со статусом "Решен".')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    reopened_status = Status.objects.filter(name=Status.REOPENED).first()
+    if not reopened_status:
+        reopened_status = Status.objects.filter(name=Status.OPEN).first()
+
+    if not reopened_status:
+        messages.error(request, '❌ Не найден статус для повторного открытия тикета.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_STATUS_CHANGED,
+        old_value=ticket.status.get_name_display(),
+        new_value=reopened_status.get_name_display(),
+    )
+
+    ticket.status = reopened_status
+    ticket.save(update_fields=['status', 'updated_at'])
+    messages.success(request, f'Тикет #{ticket.id} переоткрыт. Исполнитель увидит, что проблема осталась.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
+
+
+@login_required(login_url='login')
+@require_POST
+def cancel_ticket_by_creator(request, ticket_id):
+    """Отзыв заявки создателем, пока тикет еще не взят в работу."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.creator and not request.user.is_staff:
+        messages.error(request, '❌ Только создатель тикета может отозвать заявку.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    if not ticket.status or ticket.status.name != Status.OPEN:
+        messages.error(request, '❌ Отозвать можно только тикет со статусом "Открыт".')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    closed_status = Status.objects.filter(name=Status.CLOSED).first()
+    if not closed_status:
+        messages.error(request, '❌ Статус "Закрыт" не найден.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_STATUS_CHANGED,
+        old_value=ticket.status.get_name_display(),
+        new_value=closed_status.get_name_display(),
+    )
+
+    ticket.status = closed_status
+    ticket.save(update_fields=['status', 'updated_at', 'closed_at'])
+    messages.success(request, f'Заявка по тикету #{ticket.id} отозвана.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
 
 
 @login_required(login_url='login')
@@ -365,7 +490,38 @@ def assign_ticket_to_me(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     ticket.assigned_to = request.user
     ticket.save(update_fields=['assigned_to', 'updated_at'])
-    messages.success(request, f'РўРёРєРµС‚ #{ticket.id} РЅР°Р·РЅР°С‡РµРЅ РЅР° РІР°СЃ.')
+    messages.success(request, f'Тикет #{ticket.id} назначен на вас.')
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('ticket_detail', ticket_id=ticket.id)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+@require_POST
+def unassign_ticket(request, ticket_id):
+    """Снять назначение тикета с текущего пользователя."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if ticket.assigned_to != request.user:
+        messages.error(request, '❌ Вы не являетесь исполнителем этого тикета.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_ASSIGNED,
+        old_value=request.user.get_full_name() or request.user.username,
+        new_value='Не назначено',
+    )
+
+    ticket.assigned_to = None
+    ticket.save(update_fields=['assigned_to', 'updated_at'])
+    messages.success(request, f'Тикет #{ticket.id} снят с вас.')
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('ticket_detail', ticket_id=ticket.id)
 
 
@@ -373,6 +529,7 @@ def assign_ticket_to_me(request, ticket_id):
 def add_comment(request, ticket_id):
     """Р”РѕР±Р°РІР»РµРЅРёРµ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ Рє С‚РёРєРµС‚Сѓ"""
     from .notifications import send_comment_notification
+    from django.core.cache import cache
 
     ticket = get_object_or_404(Ticket, id=ticket_id)
     
@@ -383,6 +540,42 @@ def add_comment(request, ticket_id):
             comment.ticket = ticket
             comment.author = request.user
             comment.save()
+
+            creator_user = ticket.creator
+            if (
+                creator_user
+                and creator_user != request.user
+                and not creator_user.is_staff
+                and not comment.is_internal
+            ):
+                creator_profile = getattr(creator_user, 'profile', None)
+                creator_notify_browser = getattr(creator_profile, 'notify_browser', True) if creator_profile else True
+                if creator_notify_browser:
+                    creator_cache_key = f'notification_user_{creator_user.id}'
+                    creator_notifications = cache.get(creator_cache_key, [])
+                    creator_notifications.append({
+                        'message': f'Новый комментарий в вашем тикете #{ticket.id}: {ticket.title}',
+                        'type': 'warning',
+                        'ticket_id': ticket.id,
+                        'comment_id': comment.id,
+                        'url': reverse('ticket_detail', kwargs={'ticket_id': ticket.id}),
+                    })
+                    cache.set(creator_cache_key, creator_notifications, timeout=None)
+
+            assigned_user = ticket.assigned_to
+            if assigned_user and assigned_user != request.user:
+                should_notify = not comment.is_internal or assigned_user.is_staff
+                if should_notify:
+                    cache_key = f'notification_comments_{assigned_user.id}'
+                    notifications = cache.get(cache_key, [])
+                    notifications.append({
+                        'message': f'Новый комментарий в тикете #{ticket.id}: {ticket.title}',
+                        'type': 'warning',
+                        'ticket_id': ticket.id,
+                        'comment_id': comment.id,
+                        'url': reverse('ticket_detail', kwargs={'ticket_id': ticket.id}),
+                    })
+                    cache.set(cache_key, notifications, timeout=None)
             send_comment_notification(comment)
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
@@ -501,7 +694,7 @@ def notification_settings(request):
         form = NotificationSettingsForm(request.POST, instance=profile)
         if form.is_valid():
             form.save()
-            messages.success(request, 'РќР°СЃС‚СЂРѕР№РєРё СѓРІРµРґРѕРјР»РµРЅРёР№ СЃРѕС…СЂР°РЅРµРЅС‹.')
+            messages.success(request, 'Настройки уведомлений сохранены.')
             return redirect('notification_settings')
     else:
         form = NotificationSettingsForm(instance=profile)
@@ -604,11 +797,11 @@ def approve_user(request, user_id):
                 updated_profile.approved_by = request.user
                 updated_profile.approved_at = timezone.now()
                 updated_profile.save()
-                messages.success(request, f'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ {user.username} СѓСЃРїРµС€РЅРѕ РѕРґРѕР±СЂРµРЅ.')
+                messages.success(request, f'Пользователь {user.username} успешно одобрен.')
                 return redirect('user_approval_list')
 
             updated_profile.save()
-            messages.success(request, f'Р”Р°РЅРЅС‹Рµ Р·Р°СЏРІРєРё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ {user.username} РѕР±РЅРѕРІР»РµРЅС‹.')
+            messages.success(request, f'Данные заявки пользователя {user.username} обновлены.')
             return redirect('approve_user', user_id=user.id)
     else:
         form = ApprovalProfileEditForm(instance=profile)
@@ -640,7 +833,7 @@ def reject_user(request, user_id):
     if request.method == 'POST':
         user.is_active = False
         user.save()
-        messages.success(request, f'РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ {user.username} РґРµР°РєС‚РёРІРёСЂРѕРІР°РЅ.')
+        messages.success(request, f'Пользователь {user.username} деактивирован.')
         return redirect('user_approval_list')
     
     context = {'user': user}
@@ -658,7 +851,7 @@ def revoke_approval(request, user_id):
         user.profile.approved_by = None
         user.profile.approved_at = None
         user.profile.save()
-        messages.success(request, f'РћРґРѕР±СЂРµРЅРёРµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ {user.username} РѕС‚РѕР·РІР°РЅРѕ.')
+        messages.success(request, f'Одобрение пользователя {user.username} отозвано.')
         return redirect('user_approval_list')
     
     context = {'user': user}
@@ -799,6 +992,52 @@ def get_new_tickets(request):
         'success': True,
         'tickets': tickets_data,
         'count': len(tickets_data)
+    })
+
+
+@require_approval
+def get_new_comment_notifications(request):
+    from django.core.cache import cache
+    from django.http import JsonResponse
+
+    try:
+        if hasattr(request.user, 'profile') and not request.user.profile.notify_browser:
+            return JsonResponse({'success': True, 'notifications': [], 'count': 0})
+    except (OperationalError, ProgrammingError):
+        pass
+
+    cache_key = f'notification_comments_{request.user.id}'
+    notifications = cache.get(cache_key, [])
+    if notifications:
+        cache.delete(cache_key)
+
+    return JsonResponse({
+        'success': True,
+        'notifications': notifications,
+        'count': len(notifications),
+    })
+
+
+@require_approval
+def get_new_browser_notifications(request):
+    from django.core.cache import cache
+    from django.http import JsonResponse
+
+    try:
+        if hasattr(request.user, 'profile') and not request.user.profile.notify_browser:
+            return JsonResponse({'success': True, 'notifications': [], 'count': 0})
+    except (OperationalError, ProgrammingError):
+        pass
+
+    cache_key = f'notification_user_{request.user.id}'
+    notifications = cache.get(cache_key, [])
+    if notifications:
+        cache.delete(cache_key)
+
+    return JsonResponse({
+        'success': True,
+        'notifications': notifications,
+        'count': len(notifications),
     })
 
 

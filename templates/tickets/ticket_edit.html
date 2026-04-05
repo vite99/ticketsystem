@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Ticket System{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    .tw-edit-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .tw-edit-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.25rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 16px 48px rgba(15, 23, 42, 0.06);
+    }
+
+    .tw-input,
+    .tw-select,
+    .tw-textarea {
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.875rem;
+        background: #ffffff;
+        color: #0f172a;
+        padding: 0.85rem 1rem;
+        font-size: 0.95rem;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .tw-input:focus,
+    .tw-select:focus,
+    .tw-textarea:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+    }
+
+    .tw-segment {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .tw-upload-box {
+        border: 1px dashed #94a3b8;
+        border-radius: 1rem;
+        background: #f8fafc;
+        padding: 1.75rem 1.25rem;
+        text-align: center;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .tw-upload-box.dragover {
+        border-color: #6366f1;
+        background: #eef2ff;
+    }
+
+    .tw-attachment-row {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.875rem;
+        background: #ffffff;
+        transition: all 0.15s ease;
+    }
+
+    .tw-attachment-row.marked {
+        border-color: rgba(220, 38, 38, 0.35);
+        background: rgba(254, 242, 242, 0.9);
+    }
+
+    @media (max-width: 768px) {
+        .tw-segment {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 -mx-3 px-3 py-6 sm:px-4 lg:px-6">
+    <div class="tw-edit-shell" x-data="ticketEditPage()" x-init="init()">
+        <div class="mb-6">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Редактирование обращения</p>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 class="text-3xl font-semibold tracking-tight text-slate-950">Редактировать тикет</h1>
+                    <p class="mt-2 max-w-2xl text-sm text-slate-600">
+                        Обновите описание, приоритет, файлы и дополнительные параметры без лишних действий.
+                    </p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-right shadow-sm">
+                    <div class="text-xs uppercase tracking-[0.18em] text-slate-400">Тикет</div>
+                    <div class="mt-1 text-lg font-semibold text-slate-900">#{{ ticket.id }}</div>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="tw-edit-card p-6 sm:p-8">
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.title.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Заголовок</label>
+                            <input
+                                id="{{ form.title.id_for_label }}"
+                                name="{{ form.title.html_name }}"
+                                type="text"
+                                value="{{ form.title.value|default_if_none:'' }}"
+                                placeholder="{{ form.title.field.widget.attrs.placeholder }}"
+                                class="tw-input"
+                            >
+                            {% if form.title.errors %}
+                            <p class="mt-2 text-sm text-rose-600">{{ form.title.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Описание</label>
+                            <textarea
+                                id="{{ form.description.id_for_label }}"
+                                name="{{ form.description.html_name }}"
+                                rows="6"
+                                placeholder="{{ form.description.field.widget.attrs.placeholder }}"
+                                class="tw-textarea"
+                            >{{ form.description.value|default_if_none:'' }}</textarea>
+                            {% if form.description.errors %}
+                            <p class="mt-2 text-sm text-rose-600">{{ form.description.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+
+                        {% if user.is_staff %}
+                        <div>
+                            <label class="mb-3 block text-sm font-medium text-slate-900">Приоритет</label>
+                            <select id="{{ form.priority.id_for_label }}" name="{{ form.priority.html_name }}" class="hidden" x-ref="prioritySelect">
+                                {% for option in form.priority %}
+                                {{ option }}
+                                {% endfor %}
+                            </select>
+                            <div class="tw-segment md:grid-cols-4">
+                                {% for priority in form.priority.field.queryset %}
+                                <button
+                                    type="button"
+                                    @click="setPriority('{{ priority.id }}')"
+                                    :class="selectedPriority === '{{ priority.id }}'
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+                                    class="rounded-2xl border px-4 py-3 text-sm font-semibold transition"
+                                >
+                                    {{ priority.get_name_display }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            {% if form.priority.errors %}
+                            <p class="mt-2 text-sm text-rose-600">{{ form.priority.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div>
+                            <label class="mb-3 block text-sm font-medium text-slate-900">Срочность</label>
+                            <select id="{{ form.user_urgency.id_for_label }}" name="{{ form.user_urgency.html_name }}" class="hidden" x-ref="urgencySelect">
+                                {% for option in form.user_urgency %}
+                                {{ option }}
+                                {% endfor %}
+                            </select>
+                            <div class="tw-segment md:grid-cols-3">
+                                <button
+                                    type="button"
+                                    @click="setUrgency('low')"
+                                    :class="selectedUrgency === 'low'
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+                                    class="rounded-2xl border px-4 py-3 text-sm font-semibold transition"
+                                >
+                                    Низкая
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setUrgency('normal')"
+                                    :class="selectedUrgency === 'normal'
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+                                    class="rounded-2xl border px-4 py-3 text-sm font-semibold transition"
+                                >
+                                    Обычная
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="setUrgency('urgent')"
+                                    :class="selectedUrgency === 'urgent'
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+                                    class="rounded-2xl border px-4 py-3 text-sm font-semibold transition"
+                                >
+                                    Высокая
+                                </button>
+                            </div>
+                            {% if form.user_urgency.errors %}
+                            <p class="mt-2 text-sm text-rose-600">{{ form.user_urgency.errors|striptags }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <label for="{{ form.workstation.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Рабочее место</label>
+                                {{ form.workstation }}
+                                <p class="mt-2 text-xs text-slate-500">Укажите рабочее место или компьютер, чтобы не потерять контекст обращения.</p>
+                                {% if form.workstation.errors %}
+                                <p class="mt-2 text-sm text-rose-600">{{ form.workstation.errors|striptags }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.due_date.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">
+                                    {% if user.is_staff %}{{ form.due_date.label }}{% else %}Желаемый срок решения{% endif %}
+                                </label>
+                                {{ form.due_date }}
+                                <p class="mt-2 text-xs text-slate-500">Если дата ориентировочная, поле можно оставить пустым.</p>
+                                {% if form.due_date.errors %}
+                                <p class="mt-2 text-sm text-rose-600">{{ form.due_date.errors|striptags }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-slate-900">Файлы</label>
+                            <div
+                                class="tw-upload-box"
+                                :class="{ 'dragover': dragging }"
+                                @dragover.prevent="dragging = true"
+                                @dragleave.prevent="dragging = false"
+                                @drop.prevent="handleDrop($event)"
+                            >
+                                <input id="id_attachments" name="attachments" type="file" multiple class="hidden" x-ref="fileInput" @change="syncFiles($event)">
+                                <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm">
+                                    <i data-lucide="upload" class="h-5 w-5"></i>
+                                </div>
+                                <p class="text-sm font-semibold text-slate-900">Перетащите файлы сюда</p>
+                                <p class="mt-1 text-xs text-slate-500">Скриншоты, документы и архивы можно загрузить одним действием.</p>
+                                <button
+                                    type="button"
+                                    class="mt-4 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                                    @click="$refs.fileInput.click()"
+                                >
+                                    Выбрать файлы
+                                </button>
+                            </div>
+
+                            <template x-if="files.length">
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <template x-for="file in files" :key="file.name + file.size">
+                                        <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
+                                            <i data-lucide="paperclip" class="h-3.5 w-3.5"></i>
+                                            <span x-text="file.name"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </template>
+
+                            {% if existing_attachments %}
+                            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <p class="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Уже прикреплено</p>
+                                <div class="space-y-2">
+                                    {% for attachment in existing_attachments %}
+                                    <div class="tw-attachment-row flex items-center justify-between px-4 py-3" :class="{ 'marked': removedAttachmentIds.includes('{{ attachment.id }}') }">
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="min-w-0 flex-1 text-decoration-none">
+                                            <span class="block truncate text-sm font-medium text-slate-800">{{ attachment.file.name|slice:"20:" }}</span>
+                                            <span class="mt-1 block text-xs text-slate-500">{{ attachment.uploaded_at|date:"d.m.Y H:i" }}</span>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            class="ml-3 inline-flex h-9 w-9 items-center justify-center rounded-xl text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+                                            @click="toggleAttachmentDeletion('{{ attachment.id }}')"
+                                            title="Удалить вложение"
+                                        >
+                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                        </button>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <template x-for="attachmentId in removedAttachmentIds" :key="attachmentId">
+                                    <input type="hidden" name="delete_attachments" :value="attachmentId">
+                                </template>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="space-y-6">
+                    <div class="tw-edit-card p-6">
+                        <div class="mb-4">
+                            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Справка</h2>
+                            <p class="mt-2 text-sm text-slate-600">
+                                Изменения сохраняются сразу в карточке тикета. Для пользователей статус управляется исполнителем.
+                            </p>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 p-4">
+                            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Текущий тикет</div>
+                            <div class="mt-2 text-2xl font-semibold text-slate-900">#{{ ticket.id }}</div>
+                            <div class="mt-1 text-sm text-slate-500">{{ ticket.title }}</div>
+                        </div>
+                    </div>
+
+                    {% if user.is_staff %}
+                    <div class="tw-edit-card p-6">
+                        <div class="mb-4">
+                            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Advanced Settings</h2>
+                            <p class="mt-2 text-sm text-slate-600">Manual Status Override и дополнительные параметры доступны только сотрудникам.</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            {% if form.status %}
+                            <div>
+                                <label for="{{ form.status.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Manual Status Override</label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <p class="mt-2 text-sm text-rose-600">{{ form.status.errors|striptags }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {% if form.assigned_to %}
+                            <div>
+                                <label for="{{ form.assigned_to.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">{{ form.assigned_to.label }}</label>
+                                {{ form.assigned_to }}
+                                {% if form.assigned_to.errors %}
+                                <p class="mt-2 text-sm text-rose-600">{{ form.assigned_to.errors|striptags }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {% if form.estimated_hours %}
+                            <div>
+                                <label for="{{ form.estimated_hours.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">{{ form.estimated_hours.label }}</label>
+                                {{ form.estimated_hours }}
+                                {% if form.estimated_hours.errors %}
+                                <p class="mt-2 text-sm text-rose-600">{{ form.estimated_hours.errors|striptags }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {% if form.tags %}
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-slate-900">{{ form.tags.label }}</label>
+                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                                    {{ form.tags }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </aside>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <a href="{% url 'ticket_detail' ticket.id %}" class="inline-flex items-center rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                    Отмена
+                </a>
+                <button type="submit" class="inline-flex items-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+                    Сохранить изменения
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    function ticketEditPage() {
+        return {
+            dragging: false,
+            files: [],
+            removedAttachmentIds: [],
+            selectedUrgency: '{{ form.user_urgency.value|default_if_none:"normal"|escapejs }}',
+            selectedPriority: '{{ form.priority.value|default_if_none:""|escapejs }}',
+            init() {
+                this.syncUrgencyField();
+                this.syncPriorityField();
+                this.refreshIcons();
+            },
+            setUrgency(value) {
+                this.selectedUrgency = value;
+                this.syncUrgencyField();
+            },
+            syncUrgencyField() {
+                if (this.$refs.urgencySelect) {
+                    this.$refs.urgencySelect.value = this.selectedUrgency;
+                }
+            },
+            setPriority(value) {
+                this.selectedPriority = value;
+                this.syncPriorityField();
+            },
+            syncPriorityField() {
+                if (this.$refs.prioritySelect) {
+                    this.$refs.prioritySelect.value = this.selectedPriority;
+                }
+            },
+            syncFiles(event) {
+                this.files = Array.from(event.target.files || []);
+                this.dragging = false;
+                this.refreshIcons();
+            },
+            handleDrop(event) {
+                const droppedFiles = Array.from(event.dataTransfer.files || []);
+                const dataTransfer = new DataTransfer();
+                droppedFiles.forEach(file => dataTransfer.items.add(file));
+                this.$refs.fileInput.files = dataTransfer.files;
+                this.files = droppedFiles;
+                this.dragging = false;
+                this.refreshIcons();
+            },
+            toggleAttachmentDeletion(attachmentId) {
+                if (this.removedAttachmentIds.includes(attachmentId)) {
+                    this.removedAttachmentIds = this.removedAttachmentIds.filter(id => id !== attachmentId);
+                } else {
+                    this.removedAttachmentIds.push(attachmentId);
+                }
+                this.refreshIcons();
+            },
+            refreshIcons() {
+                this.$nextTick(() => {
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                });
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    });
+</script>
+{% endblock %}

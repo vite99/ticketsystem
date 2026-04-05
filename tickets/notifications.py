@@ -156,6 +156,18 @@ def _build_creator_message(ticket, created: bool) -> tuple[str, str]:
     return subject, body
 
 
+def _is_significant_creator_update(ticket, created: bool) -> bool:
+    if created:
+        return True
+
+    previous = getattr(ticket, "_previous_state", None) or {}
+    if not previous:
+        return False
+
+    tracked_fields = ("status_id", "priority_id", "assigned_to_id")
+    return any(previous.get(field) != getattr(ticket, field) for field in tracked_fields)
+
+
 def send_ticket_email_notification(ticket, created: bool) -> bool:
     if not getattr(settings, "NOTIFY_EMAIL_ENABLED", True):
         return False
@@ -235,6 +247,8 @@ def send_creator_vk_notification(ticket, created: bool) -> bool:
         return False
     if ticket.creator.is_staff:
         return False
+    if not _is_significant_creator_update(ticket, created=created):
+        return False
 
     vk_id = _get_creator_vk_id(ticket)
     if not vk_id:
@@ -272,6 +286,8 @@ def send_creator_email_notification(ticket, created: bool) -> bool:
     if not getattr(settings, "NOTIFY_EMAIL_ENABLED", True):
         return False
     if ticket.creator.is_staff:
+        return False
+    if not _is_significant_creator_update(ticket, created=created):
         return False
 
     email = _get_creator_email(ticket)

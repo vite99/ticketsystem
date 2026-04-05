@@ -4,15 +4,23 @@ from .models import Priority, Status, Tag, Workstation, Ticket, Comment, Attachm
 
 @admin.register(Priority)
 class PriorityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color')
+    list_display = ('display_name', 'color')
     search_fields = ('name',)
+
+    @admin.display(description='Название', ordering='name')
+    def display_name(self, obj):
+        return obj.get_name_display()
 
 
 @admin.register(Status)
 class StatusAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color', 'is_final')
+    list_display = ('display_name', 'color', 'is_final')
     search_fields = ('name',)
     list_filter = ('is_final',)
+
+    @admin.display(description='Название', ordering='name')
+    def display_name(self, obj):
+        return obj.get_name_display()
 
 
 @admin.register(Tag)

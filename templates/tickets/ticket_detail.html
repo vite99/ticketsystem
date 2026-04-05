@@ -131,7 +131,6 @@
 
 {% block content %}
 <div class="container-fluid px-0">
-    <!-- Заголовок и кнопки -->
     <div class="ticket-header">
         <div>
             <h2>{{ ticket.title }}</h2>
@@ -145,9 +144,7 @@
     </div>
 
     <div class="row">
-        <!-- Основная информация -->
         <div class="col-lg-8">
-            <!-- Метаинформация -->
             <div class="ticket-meta">
                 <div class="meta-item">
                     <div class="meta-label">
@@ -186,7 +183,7 @@
                         {% if ticket.assigned_to %}
                             {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
                         {% else %}
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">Не назначено</span>
                         {% endif %}
                     </div>
                 </div>
@@ -211,12 +208,8 @@
                         <i class="fas fa-desktop"></i> Рабочее место
                     </div>
                     <div class="meta-value">
-                        <div>
-                            <strong>{{ ticket.workstation.room }}</strong>
-                        </div>
-                        <div style="font-size: 0.9rem;">
-                            {{ ticket.workstation.number }}
-                        </div>
+                        <div><strong>{{ ticket.workstation.room }}</strong></div>
+                        <div style="font-size: 0.9rem;">{{ ticket.workstation.number }}</div>
                         {% if ticket.workstation.location %}
                         <div style="font-size: 0.85rem; color: #718096; margin-top: 4px;">
                             {{ ticket.workstation.location }}
@@ -249,7 +242,6 @@
             </div>
             {% endif %}
 
-            <!-- Описание -->
             <div class="description-section mb-4">
                 <h5 style="margin-bottom: 16px;">
                     <i class="fas fa-align-left"></i> Описание
@@ -257,7 +249,6 @@
                 <p style="margin: 0;">{{ ticket.description|linebreaks }}</p>
             </div>
 
-            <!-- Комментарии -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -318,9 +309,7 @@
             </div>
         </div>
 
-        <!-- Боковая панель -->
         <div class="col-lg-4">
-            <!-- Вложения -->
             {% if attachments %}
             <div class="card sidebar-card">
                 <div class="card-header">
@@ -346,50 +335,151 @@
             </div>
             {% endif %}
 
-            <!-- Дополнительная информация -->
-            <div class="card sidebar-card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle"></i> Детали
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if ticket.estimated_hours %}
-                    <div class="mb-3">
-                        <small class="text-muted">Расчетные часы</small>
-                        <div style="font-weight: 600;">{{ ticket.estimated_hours }} ч.</div>
-                    </div>
-                    {% endif %}
-
-                    {% if ticket.resolved_at %}
-                    <div class="mb-3">
-                        <small class="text-muted">Решено</small>
-                        <div style="font-weight: 600;">{{ ticket.resolved_at|date:"d.m.Y H:i" }}</div>
-                    </div>
-                    {% endif %}
-
-                    {% if ticket.closed_at %}
-                    <div class="mb-3">
-                        <small class="text-muted">Закрыто</small>
-                        <div style="font-weight: 600;">{{ ticket.closed_at|date:"d.m.Y H:i" }}</div>
-                    </div>
-                    {% endif %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-bold">Детали</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted ps-3" style="width:45%">Рабочее место</td>
+                                <td class="fw-semibold pe-3">
+                                    {% if ticket.workstation %}
+                                        {{ ticket.workstation }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-3">Теги</td>
+                                <td class="pe-3">
+                                    {% if ticket.tags.all %}
+                                        {% for tag in ticket.tags.all %}
+                                            <span class="badge rounded-pill" style="background-color: {{ tag.color }}">
+                                                {{ tag.name }}
+                                            </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-3">Срок</td>
+                                <td class="pe-3">
+                                    {% if ticket.due_date %}
+                                        {% if ticket.due_date < now and ticket.status.name != 'resolved' and ticket.status.name != 'closed' %}
+                                            <span class="text-danger fw-bold">
+                                                {{ ticket.due_date|date:"d.m.Y H:i" }}
+                                            </span>
+                                        {% else %}
+                                            {{ ticket.due_date|date:"d.m.Y H:i" }}
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-3">Часов</td>
+                                <td class="pe-3">
+                                    {% if ticket.estimated_hours %}
+                                        {{ ticket.estimated_hours }} ч.
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if ticket.resolved_at %}
+                            <tr>
+                                <td class="text-muted ps-3">Решено</td>
+                                <td class="pe-3">{{ ticket.resolved_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if ticket.closed_at %}
+                            <tr>
+                                <td class="text-muted ps-3">Закрыто</td>
+                                <td class="pe-3">{{ ticket.closed_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <!-- Действия -->
+            {% if request.user.is_staff %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    {% if ticket.assigned_to == request.user %}
+                    <form method="post" action="{% url 'unassign_ticket' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Снять тикет с себя?')">
+                            Снять с себя
+                        </button>
+                    </form>
+                    {% elif not ticket.assigned_to %}
+                    <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-100">
+                            Назначить мне
+                        </button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-primary w-100" onclick="return confirm('Переназначить тикет на себя?')">
+                            Переназначить мне
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if can_confirm_resolution %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="fw-semibold">Подтверждение решения</div>
+                        <div class="text-muted small">Если проблема устранена, закройте тикет. Если нет, верните его в работу.</div>
+                    </div>
+                    <form method="post" action="{% url 'confirm_ticket_resolution' ticket.id %}" class="mb-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Подтвердить решение и закрыть тикет?')">
+                            Подтвердить решение
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'reopen_ticket_by_creator' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-warning w-100" onclick="return confirm('Проблема осталась и тикет нужно вернуть в работу?')">
+                            Проблема осталась
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if can_cancel_ticket %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="fw-semibold">Отмена заявки</div>
+                        <div class="text-muted small">Пока тикет еще не взят в работу, вы можете отозвать заявку.</div>
+                    </div>
+                    <form method="post" action="{% url 'cancel_ticket_by_creator' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Отозвать заявку по этому тикету?')">
+                            Отозвать заявку
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="action-grid">
                 <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> К списку
                 </a>
-                {% if user.is_staff and ticket.assigned_to != user %}
-                <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-user-plus"></i> Назначить мне
-                    </button>
-                </form>
-                {% endif %}
                 {% if can_edit %}
                 <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">
                     <i class="fas fa-edit"></i> Редактировать

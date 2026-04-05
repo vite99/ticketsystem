@@ -557,7 +557,7 @@
                 setTimeout(() => window.showNotification(message, type), 500);
             });
 
-            // Для админов: периодическая проверка новых уведомлений (каждые 5 секунд)
+            // Для админов: периодическая проверка новых тикетов
             {% if user.is_staff %}
             let lastTicketId = 0;
             let initializedNotifications = false;
@@ -590,6 +590,43 @@
 
             pollNewTickets();
             setInterval(pollNewTickets, 10000);
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            function pollBrowserNotifications() {
+                fetch('{% url "get_new_browser_notifications" %}')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || !data.success || !Array.isArray(data.notifications)) {
+                            return;
+                        }
+
+                        data.notifications.forEach(item => {
+                            window.showNotification(item.message, item.type || 'info');
+                        });
+                    })
+                    .catch(() => {});
+            }
+
+            function pollNewComments() {
+                fetch('{% url "get_new_comment_notifications" %}')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || !data.success || !Array.isArray(data.notifications)) {
+                            return;
+                        }
+
+                        data.notifications.forEach(item => {
+                            window.showNotification(item.message, item.type || 'warning');
+                        });
+                    })
+                    .catch(() => {});
+            }
+
+            pollBrowserNotifications();
+            setInterval(pollBrowserNotifications, 10000);
+            pollNewComments();
+            setInterval(pollNewComments, 10000);
             {% endif %}
         });
     </script>
