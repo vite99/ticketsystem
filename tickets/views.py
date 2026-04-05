@@ -954,6 +954,48 @@ def user_detail_admin(request, user_id):
 
 
 @login_required(login_url='login')
+@require_POST
+def change_ticket_status(request, ticket_id):
+    """Изменить статус тикета"""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    # Проверка прав доступа (только создатель, назначенный или администратор)
+    if not (request.user == ticket.creator or request.user == ticket.assigned_to or request.user.is_staff):
+        messages.error(request, '❌ У вас нет прав для изменения статуса этого тикета.')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Получить новый статус
+    new_status_name = request.POST.get('status')
+    if not new_status_name:
+        messages.error(request, '❌ Статус не указан.')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Получить объект Status
+    try:
+        new_status = Status.objects.get(name=new_status_name)
+    except Status.DoesNotExist:
+        messages.error(request, f'❌ Статус "{new_status_name}" не существует.')
+        return redirect('ticket_detail', ticket_id=ticket_id)
+    
+    # Сохранить старый статус для истории
+    old_status = ticket.status
+    
+    # Изменить статус
+    ticket.status = new_status
+    ticket.save()
+    
+    # Добавить запись в историю
+    TicketHistory.objects.create(
+        ticket=ticket,
+        user=request.user,
+        action=f'Статус изменён: {old_status} → {new_status}'
+    )
+    
+    messages.success(request, f'✅ Статус изменён на "{new_status}".')
+    return redirect('ticket_detail', ticket_id=ticket_id)
+
+
+@login_required(login_url='login')
 @user_passes_test(is_admin)
 def workstation_delete(request, workstation_id):
     workstation = get_object_or_404(Workstation, id=workstation_id)

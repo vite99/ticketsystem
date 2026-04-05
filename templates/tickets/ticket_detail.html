@@ -495,6 +495,82 @@
             {% endif %}
 
             <div class="action-grid">
+                {% if can_edit %}
+                <!-- Кнопки управления статусом -->
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-bottom: 16px;">
+                    <div style="font-size: 0.85rem; color: #718096; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-tasks"></i> Управление статусом
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                        <!-- Кнопка: Открыт -->
+                        {% if ticket.status.name != 'open' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="open">
+                            <button type="submit" class="btn" style="background-color: #dbeafe; color: #0369a1; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-lock-open"></i> Открыт
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: В работе -->
+                        {% if ticket.status.name != 'in_progress' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn" style="background-color: #bfdbfe; color: #1e40af; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-spinner"></i> В работе
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Ожидание -->
+                        {% if ticket.status.name != 'waiting' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="waiting">
+                            <button type="submit" class="btn" style="background-color: #fef3c7; color: #92400e; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-hourglass-half"></i> Ожидание
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Решен -->
+                        {% if ticket.status.name != 'resolved' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="resolved">
+                            <button type="submit" class="btn" style="background-color: #dcfce7; color: #166534; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-check"></i> Решен
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Закрыт -->
+                        {% if ticket.status.name != 'closed' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="closed">
+                            <button type="submit" class="btn" style="background-color: #e5e7eb; color: #374151; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-times"></i> Закрыт
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Переоткрыт (для администратора) -->
+                        {% if request.user.is_staff and ticket.status.name != 'reopened' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="reopened">
+                            <button type="submit" class="btn" style="background-color: #fee2e2; color: #991b1b; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-redo"></i> Переоткрыт
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
                 <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> К списку
                 </a>
