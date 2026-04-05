@@ -26,6 +26,19 @@
 - **Зачем:** Администратор видит, сколько открыто новых тикетов
 - **Анимация:** Пульсирующий значок (pulse animation)
 
+### 4️⃣ **Список тикетов (таблица)** ⏱️ 20 сек
+- **Где:** На главной странице со списком тикетов (`/tickets/`)
+- **Как:** Содержимое таблицы обновляется каждые 20 секунд
+- **Зачем:** Видеть новые тикеты и изменения статусов без перезагрузки
+- **CSS:** Плавная fade-in анимация при обновлении (0.3s)
+- **Параметры:** Сохраняет все фильтры (статус, приоритет, поиск)
+
+### 5️⃣ **Количество тикетов в списке** ⏱️ 20 сек
+- **Где:** В заголовке карточки со списком тикетов, справа от "Тикеты"
+- **Как:** Счётчик обновляется каждые 20 секунд
+- **Зачем:** Видеть актуальное количество тикетов в текущем фильтре
+- **Синхронизация:** Обновляется одновременно с таблицей
+
 ---
 
 ## 🔧 Технические реализация
@@ -76,6 +89,31 @@ def new_tickets_badge(request):
     open_status = Status.objects.filter(name=Status.OPEN).first()
     count = Ticket.objects.filter(status=open_status).count() if open_status else 0
     return render(request, 'tickets/partials/new_tickets_badge.html',
+                  {'count': count})
+
+@login_required(login_url='login')
+def ticket_list_rows_partial(request):
+    """Partial для строк таблицы списка тикетов"""
+    # Получить параметры фильтрации из GET
+    filter_status = request.GET.get('status', '')
+    filter_priority = request.GET.get('priority', '')
+    # ... и т.д.
+    
+    # Получить и отфильтровать тикеты
+    tickets = Ticket.objects.filter(is_archived=False).select_related(...)
+    # ... применить фильтры ...
+    
+    return render(request, 'tickets/partials/ticket_list_rows_partial.html',
+                  {'tickets': tickets, 'is_archive': False})
+
+@login_required(login_url='login')
+def ticket_count_partial(request):
+    """Partial для счётчика количества тикетов"""
+    # Получить параметры фильтрации
+    # ... применить фильтры ...
+    
+    count = tickets.count()
+    return render(request, 'tickets/partials/ticket_count_partial.html',
                   {'count': count})
 ```
 
@@ -138,6 +176,18 @@ def new_tickets_badge(request):
 - **Django** — backend для partial views
 - **CSS3 transitions** — плавные анимации
 - **Polling** — регулярные запросы к серверу
+
+---
+
+## ⏱️ Интервалы обновления
+
+| Элемент | Интервал | Причина |
+|---------|----------|---------|
+| Статус тикета (деталь) | 10 сек | Часто меняется, нужно видеть сразу |
+| Комментарии | 15 сек | Достаточно для диалога, экономит ресурсы |
+| Список тикетов (таблица) | 20 сек | Видеть новые тикеты и изменения |
+| Количество тикетов | 20 сек | Синхронизируется с таблицей |
+| Новые тикеты (админ) | 30 сек | За день образуется мало тикетов, редкое изменение |
 
 ---
 
