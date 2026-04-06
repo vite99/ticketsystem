@@ -192,22 +192,8 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
     // Обработка завершения
     xhr.addEventListener('load', () => {
         if (xhr.status === 201) {
-            // Успех - вставить новый комментарий
-            const commentsContainer = document.getElementById('comments-container');
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xhr.responseText, 'text/html');
-            const newComment = doc.body.firstChild;
-            
-            if (newComment) {
-                commentsContainer.appendChild(newComment);
-                // Прокрутить в конец
-                commentsContainer.scrollTop = commentsContainer.scrollHeight;
-            }
-            
-            // Очистить форму
-            form.reset();
-            uploadedFilesData = new DataTransfer();
-            document.getElementById('attachments-list').innerHTML = '';
+            window.location.reload();
+            return;
         } else if (xhr.status === 400) {
             // Ошибка валидации
             try {

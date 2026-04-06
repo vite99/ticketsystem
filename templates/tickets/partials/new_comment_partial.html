@@ -58,10 +58,10 @@
                 <span class="text-xs text-blue-500">только что</span>
                 <span class="text-sm font-semibold text-blue-700">Вы</span>
             </div>
-            <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm animate-slideIn">
+            <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm animate-slideIn">
                 <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
                 {% if comment.attachments.all %}
-                <div class="mt-3 pt-3 border-t border-blue-400">
+                <div class="mt-2 pt-2 border-t border-blue-400">
                     <div class="grid grid-cols-1 gap-2">
                         {% for attachment in comment.attachments.all %}
                         <a href="{{ attachment.file.url }}" target="_blank" 
