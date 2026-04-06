@@ -3,7 +3,7 @@
     {% for comment in comments %}
         {% if comment.is_internal %}
             {# Внутренний комментарий #}
-            <div class="flex justify-start mb-4">
+            <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
                 <div class="flex flex-col max-w-md">
                     <div class="flex items-baseline gap-2 mb-1">
                         <span class="text-sm font-semibold text-amber-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
@@ -54,7 +54,7 @@
             </div>
         {% elif comment.author == user %}
             {# Сообщение текущего пользователя (справа) #}
-            <div class="flex justify-end mb-4">
+            <div class="flex justify-end mb-4" data-comment-id="{{ comment.id }}">
                 <div class="flex flex-col max-w-md">
                     <div class="flex items-baseline justify-end gap-2 mb-1">
                         <span class="text-xs text-blue-500">{{ comment.created_at|time:"H:i" }}</span>
@@ -102,7 +102,7 @@
             </div>
         {% else %}
             {# Сообщение других пользователей (слева) #}
-            <div class="flex justify-start mb-4">
+            <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
                 <div class="flex flex-col max-w-md">
                     <div class="flex items-baseline gap-2 mb-1">
                         <span class="text-sm font-semibold text-slate-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
@@ -150,10 +150,4 @@
             </div>
         {% endif %}
     {% endfor %}
-{% else %}
-    <div class="flex flex-col items-center justify-center h-full min-h-96 text-slate-400">
-        <i class="fas fa-comments text-5xl mb-4 opacity-30"></i>
-        <p class="text-lg font-medium text-slate-500">Сообщений пока нет</p>
-        <p class="text-sm text-slate-400 mt-1">Начните диалог первым.</p>
-    </div>
 {% endif %}

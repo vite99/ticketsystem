@@ -1,5 +1,5 @@
 {% for ticket in tickets %}
-<tr class="ticket-row" onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
+<tr class="ticket-row" {% if forloop.first %}data-signature="{{ signature }}"{% endif %} onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
     <td>
         <strong style="color: var(--primary);">#{{ ticket.id }}</strong>
     </td>

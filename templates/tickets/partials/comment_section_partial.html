@@ -1,0 +1,22 @@
+<div id="comment-section-container"
+     data-current-status="{{ ticket.status.name|default:'' }}"
+     hx-get="{% url 'comment_section_partial' ticket.id %}"
+     hx-trigger="every 10s"
+     hx-swap="outerHTML"
+     hx-vals='js:{ current_status: document.getElementById("comment-section-container")?.dataset.currentStatus || "" }'>
+    {% if user.is_authenticated and ticket.status.name != 'closed' %}
+    <div class="border-t border-slate-200 px-4 py-4 bg-slate-50">
+        <h6 class="mb-4 font-semibold text-slate-700">
+            <i class="fas fa-plus-circle text-indigo-600 me-2"></i> Добавить сообщение
+        </h6>
+        {% include "tickets/partials/comment_form_partial.html" %}
+    </div>
+    {% elif user.is_authenticated %}
+    <div class="border-t border-slate-200 px-4 py-4 bg-slate-50">
+        <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+            <i class="fas fa-lock me-2 text-slate-500"></i>
+            Комментарии отключены, потому что тикет закрыт.
+        </div>
+    </div>
+    {% endif %}
+</div>

@@ -297,31 +297,17 @@
                 </div>
 
                 <aside class="space-y-6">
-                    <div class="tw-edit-card p-6">
-                        <div class="mb-4">
-                            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Справка</h2>
-                            <p class="mt-2 text-sm text-slate-600">
-                                Изменения сохраняются сразу в карточке тикета. Для пользователей статус управляется исполнителем.
-                            </p>
-                        </div>
-                        <div class="rounded-2xl bg-slate-50 p-4">
-                            <div class="text-xs uppercase tracking-[0.16em] text-slate-400">Текущий тикет</div>
-                            <div class="mt-2 text-2xl font-semibold text-slate-900">#{{ ticket.id }}</div>
-                            <div class="mt-1 text-sm text-slate-500">{{ ticket.title }}</div>
-                        </div>
-                    </div>
-
                     {% if user.is_staff %}
                     <div class="tw-edit-card p-6">
                         <div class="mb-4">
-                            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Advanced Settings</h2>
-                            <p class="mt-2 text-sm text-slate-600">Manual Status Override и дополнительные параметры доступны только сотрудникам.</p>
+                            <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Параметры исполнения</h2>
+                            <p class="mt-2 text-sm text-slate-600">Здесь находятся только операционные настройки, нужные сотруднику.</p>
                         </div>
 
                         <div class="space-y-4">
                             {% if form.status %}
                             <div>
-                                <label for="{{ form.status.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Manual Status Override</label>
+                                <label for="{{ form.status.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">Статус</label>
                                 {{ form.status }}
                                 {% if form.status.errors %}
                                 <p class="mt-2 text-sm text-rose-600">{{ form.status.errors|striptags }}</p>
@@ -340,22 +326,19 @@
                             {% endif %}
 
                             {% if form.estimated_hours %}
-                            <div>
-                                <label for="{{ form.estimated_hours.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">{{ form.estimated_hours.label }}</label>
-                                {{ form.estimated_hours }}
-                                {% if form.estimated_hours.errors %}
-                                <p class="mt-2 text-sm text-rose-600">{{ form.estimated_hours.errors|striptags }}</p>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-
-                            {% if form.tags %}
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-slate-900">{{ form.tags.label }}</label>
-                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                                    {{ form.tags }}
+                            <details class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <summary class="cursor-pointer list-none text-sm font-medium text-slate-900">
+                                    Дополнительно
+                                </summary>
+                                <div class="mt-4">
+                                    <label for="{{ form.estimated_hours.id_for_label }}" class="mb-2 block text-sm font-medium text-slate-900">{{ form.estimated_hours.label }}</label>
+                                    {{ form.estimated_hours }}
+                                    <p class="mt-2 text-xs text-slate-500">Необязательное поле для внутренней оценки времени.</p>
+                                    {% if form.estimated_hours.errors %}
+                                    <p class="mt-2 text-sm text-rose-600">{{ form.estimated_hours.errors|striptags }}</p>
+                                    {% endif %}
                                 </div>
-                            </div>
+                            </details>
                             {% endif %}
                         </div>
                     </div>

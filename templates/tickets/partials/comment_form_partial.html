@@ -192,8 +192,30 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
     // Обработка завершения
     xhr.addEventListener('load', () => {
         if (xhr.status === 201) {
-            window.location.reload();
-            return;
+            const commentsContainer = document.getElementById('comments-container');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xhr.responseText, 'text/html');
+            const newComment = doc.body.firstElementChild;
+
+            if (newComment && commentsContainer) {
+                const emptyState = commentsContainer.querySelector('.min-h-96');
+                if (emptyState) {
+                    emptyState.remove();
+                }
+                commentsContainer.appendChild(newComment);
+            }
+
+            form.reset();
+            uploadedFilesData = new DataTransfer();
+            document.getElementById('attachments-list').innerHTML = '';
+            document.getElementById('file-input').files = uploadedFilesData.files;
+
+            if (typeof updateCommentCount === 'function') {
+                updateCommentCount();
+            }
+            if (typeof scrollToBottom === 'function') {
+                scrollToBottom();
+            }
         } else if (xhr.status === 400) {
             // Ошибка валидации
             try {

@@ -5,6 +5,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count
+from django.db.models import Max
 from django.db.models.functions import TruncDate
 from django.db import models
 from django.core.paginator import Paginator
@@ -22,6 +23,7 @@ from .forms import (
     NotificationSettingsForm,
     ApprovalProfileEditForm,
     WorkstationForm,
+    TagForm,
 )
 from django.urls import reverse, reverse_lazy
 
@@ -91,6 +93,7 @@ def _apply_ticket_filters_and_sorting(queryset, request, *, is_archive):
     search_query = (request.GET.get('q') or '').strip()
     status_id = (request.GET.get('status') or '').strip()
     priority_id = (request.GET.get('priority') or '').strip()
+    tag_id = (request.GET.get('tag') or '').strip()
     current_sort = (request.GET.get('sort') or 'id').strip()
 
     if status_id:
@@ -98,6 +101,9 @@ def _apply_ticket_filters_and_sorting(queryset, request, *, is_archive):
 
     if priority_id:
         queryset = queryset.filter(priority_id=priority_id)
+
+    if tag_id:
+        queryset = queryset.filter(tags__id=tag_id)
 
     if search_query:
         combined_filter = (
@@ -170,6 +176,7 @@ def _apply_ticket_filters_and_sorting(queryset, request, *, is_archive):
         'search_query': search_query,
         'selected_status': status_id,
         'selected_priority': priority_id,
+        'selected_tag': tag_id,
         'current_filters': request.GET,
         'current_sort': current_sort,
         'query_string': page_query_string,
@@ -182,6 +189,7 @@ def _apply_ticket_filters_and_sorting(queryset, request, *, is_archive):
         'next_sort_due_date': next_sort('due_date'),
         'status_choices': Status.objects.filter(name__in=COMPLETED_STATUS_NAMES).order_by('name') if is_archive else Status.objects.exclude(name__in=COMPLETED_STATUS_NAMES).order_by('name'),
         'priority_choices': Priority.objects.all().order_by('name'),
+        'tag_choices': Tag.objects.all().order_by('name'),
     }
     return queryset, context
 
@@ -207,6 +215,8 @@ def ticket_list(request):
     
     tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
     tickets, list_context = _apply_ticket_filters_and_sorting(tickets, request, is_archive=False)
+    tickets_meta = tickets.aggregate(total=Count('id'), latest=Max('updated_at'))
+    table_signature = f"{tickets_meta['total']}|{tickets_meta['latest'].isoformat() if tickets_meta['latest'] else 'none'}"
 
     paginator = Paginator(tickets, 10)
     page_number = request.GET.get('page')
@@ -218,6 +228,7 @@ def ticket_list(request):
         'statuses': list_context['status_choices'],
         'priorities': list_context['priority_choices'],
         'is_archive': False,
+        'table_signature': table_signature,
     }
     context.update(list_context)
     return render(request, 'tickets/ticket_list.html', context)
@@ -231,6 +242,8 @@ def ticket_archive(request):
         tickets = tickets.filter(creator=request.user)
 
     tickets, list_context = _apply_ticket_filters_and_sorting(tickets, request, is_archive=True)
+    tickets_meta = tickets.aggregate(total=Count('id'), latest=Max('updated_at'))
+    table_signature = f"{tickets_meta['total']}|{tickets_meta['latest'].isoformat() if tickets_meta['latest'] else 'none'}"
 
     paginator = Paginator(tickets, 10)
     page_number = request.GET.get('page')
@@ -242,6 +255,7 @@ def ticket_archive(request):
         'statuses': list_context['status_choices'],
         'priorities': list_context['priority_choices'],
         'is_archive': True,
+        'table_signature': table_signature,
     }
     context.update(list_context)
     return render(request, 'tickets/ticket_list.html', context)
@@ -253,7 +267,7 @@ def ticket_detail(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     comments = ticket.comments.all()
     attachments = ticket.attachments.all()
-    history_entries = ticket.history.select_related('actor').all()[:20]
+    history_entries = list(ticket.history.select_related('actor').all()[:20])
     
     # РџСЂРѕРІРµСЂРєР° РїСЂР°РІ РґРѕСЃС‚СѓРїР°
     can_edit = request.user == ticket.creator or request.user == ticket.assigned_to or request.user.is_staff
@@ -264,17 +278,135 @@ def ticket_detail(request, ticket_id):
         and ticket.status is not None
         and ticket.status.name == Status.OPEN
     )
+    available_tags = Tag.objects.exclude(id__in=ticket.tags.values_list('id', flat=True)).order_by('name')
 
     context = {
         'ticket': ticket,
         'comments': comments,
         'attachments': attachments,
         'history_entries': history_entries,
+        'recent_history_entries': history_entries[:5],
+        'older_history_entries': history_entries[5:],
         'can_edit': can_edit,
         'can_cancel_ticket': can_cancel_ticket,
+        'available_tags': available_tags,
         'now': timezone.now(),
     }
     return render(request, 'tickets/ticket_detail.html', context)
+
+
+@login_required(login_url='login')
+@require_POST
+def add_ticket_tag(request, ticket_id):
+    """Добавить существующий тег к тикету."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.creator and request.user != ticket.assigned_to and not request.user.is_staff:
+        messages.error(request, '❌ У вас нет прав для редактирования тегов этого тикета.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    tag_id = request.POST.get('tag_id')
+    if not tag_id:
+        messages.error(request, '❌ Тег не выбран.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    tag = get_object_or_404(Tag, id=tag_id)
+    if ticket.tags.filter(id=tag.id).exists():
+        messages.info(request, f'Тег "{tag.name}" уже добавлен к тикету.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    ticket.tags.add(tag)
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_UPDATED,
+        old_value='',
+        new_value=f'Добавлен тег: {tag.name}',
+    )
+    messages.success(request, f'Тег "{tag.name}" добавлен.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
+
+
+@login_required(login_url='login')
+@require_POST
+def remove_ticket_tag(request, ticket_id, tag_id):
+    """Удалить тег из тикета."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.creator and request.user != ticket.assigned_to and not request.user.is_staff:
+        messages.error(request, '❌ У вас нет прав для редактирования тегов этого тикета.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    tag = get_object_or_404(Tag, id=tag_id)
+    if not ticket.tags.filter(id=tag.id).exists():
+        messages.info(request, f'Тег "{tag.name}" уже отсутствует.')
+        return redirect('ticket_detail', ticket_id=ticket.id)
+
+    ticket.tags.remove(tag)
+    TicketHistory.objects.create(
+        ticket=ticket,
+        actor=request.user,
+        action=TicketHistory.ACTION_UPDATED,
+        old_value=f'Удален тег: {tag.name}',
+        new_value='',
+    )
+    messages.success(request, f'Тег "{tag.name}" удален.')
+    return redirect('ticket_detail', ticket_id=ticket.id)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def tag_list(request):
+    tags = Tag.objects.all().order_by('name')
+    return render(request, 'tickets/tag_list.html', {'tags': tags, 'total': tags.count()})
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def tag_create(request):
+    if request.method == 'POST':
+        form = TagForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Тег создан.')
+            return redirect('tag_list')
+    else:
+        form = TagForm(initial={'color': '#2563eb'})
+
+    return render(request, 'tickets/tag_form.html', {'form': form, 'title': 'Добавить тег'})
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def tag_edit(request, tag_id):
+    tag = get_object_or_404(Tag, id=tag_id)
+    if request.method == 'POST':
+        form = TagForm(request.POST, instance=tag)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '✅ Тег обновлен.')
+            return redirect('tag_list')
+    else:
+        form = TagForm(instance=tag)
+
+    return render(request, 'tickets/tag_form.html', {'form': form, 'title': 'Редактировать тег', 'tag': tag})
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def tag_delete(request, tag_id):
+    tag = get_object_or_404(Tag, id=tag_id)
+
+    if request.method == 'POST':
+        if tag.ticket_set.exists():
+            messages.error(request, '❌ Нельзя удалить тег, пока он привязан к тикетам.')
+            return redirect('tag_list')
+
+        tag.delete()
+        messages.success(request, '✅ Тег удален.')
+        return redirect('tag_list')
+
+    return render(request, 'tickets/tag_confirm_delete.html', {'tag': tag})
 
 
 @login_required(login_url='login')
@@ -746,12 +878,12 @@ def ticket_statistics(request):
     """РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕ С‚РёРєРµС‚Р°Рј."""
     if request.user.is_staff:
         tickets = Ticket.objects.all()
-        scope_label = 'Р’СЃРµ С‚РёРєРµС‚С‹'
+        scope_label = 'Все тикеты'
     else:
         tickets = Ticket.objects.filter(
             Q(creator=request.user) | Q(assigned_to=request.user)
         ).distinct()
-        scope_label = 'РњРѕРё С‚РёРєРµС‚С‹'
+        scope_label = 'Мои тикеты'
 
     total_tickets = tickets.count()
     status_stats = (
@@ -761,6 +893,12 @@ def ticket_statistics(request):
     )
     priority_stats = (
         tickets.values('priority__name', 'priority__color')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    tag_stats = (
+        tickets.values('tags__name', 'tags__color')
+        .exclude(tags__name__isnull=True)
         .annotate(count=Count('id'))
         .order_by('-count')
     )
@@ -799,6 +937,14 @@ def ticket_statistics(request):
 
     status_rows = with_percent(status_stats, 'status__name', 'status__color', 'Р‘РµР· СЃС‚Р°С‚СѓСЃР°')
     priority_rows = with_percent(priority_stats, 'priority__name', 'priority__color', 'Р‘РµР· РїСЂРёРѕСЂРёС‚РµС‚Р°')
+    tag_rows = with_percent(tag_stats, 'tags__name', 'tags__color', 'Без тега')
+
+    status_display_map = dict(Status.STATUS_CHOICES)
+    priority_display_map = dict(Priority.PRIORITY_CHOICES)
+    for row in status_rows:
+        row['name'] = status_display_map.get(row['name'], row['name'])
+    for row in priority_rows:
+        row['name'] = priority_display_map.get(row['name'], row['name'])
 
     context = {
         'scope_label': scope_label,
@@ -808,6 +954,7 @@ def ticket_statistics(request):
         'closed_tickets': tickets.filter(status__name='closed').count(),
         'status_stats': status_rows,
         'priority_stats': priority_rows,
+        'tag_stats': tag_rows,
         'top_creators': top_creators,
         'top_assignees': top_assignees,
         'trend_labels': trend_labels,
@@ -1195,11 +1342,54 @@ def ticket_comments_partial(request, ticket_id):
     """Partial для отображения комментариев (live updates)"""
     ticket = get_object_or_404(Ticket, id=ticket_id)
     comments = ticket.comments.all()
+
+    after_id = (request.GET.get('after_id') or '').strip()
+    if after_id.isdigit():
+        comments = comments.filter(id__gt=int(after_id))
+        if not comments.exists():
+            from django.http import HttpResponse
+            return HttpResponse(status=204)
+
     context = {
         'ticket': ticket,
         'comments': comments,
     }
     return render(request, 'tickets/partials/ticket_comments_partial.html', context)
+
+
+@login_required(login_url='login')
+def comment_section_partial(request, ticket_id):
+    """Partial для блока формы комментариев/сообщения о закрытии."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    current_status = (request.GET.get('current_status') or '').strip()
+    ticket_status = ticket.status.name if ticket.status else ''
+
+    if current_status == ticket_status:
+        from django.http import HttpResponse
+        return HttpResponse(status=204)
+
+    context = {
+        'ticket': ticket,
+        'form': CommentForm(),
+    }
+    return render(request, 'tickets/partials/comment_section_partial.html', context)
+
+
+@login_required(login_url='login')
+def resolution_section_partial(request, ticket_id):
+    """Partial для блока подтверждения решения."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    current_status = (request.GET.get('current_status') or '').strip()
+    ticket_status = ticket.status.name if ticket.status else ''
+
+    if current_status == ticket_status:
+        from django.http import HttpResponse
+        return HttpResponse(status=204)
+
+    context = {
+        'ticket': ticket,
+    }
+    return render(request, 'tickets/partials/resolution_section_partial.html', context)
 
 
 @login_required(login_url='login')
@@ -1239,14 +1429,18 @@ def new_tickets_badge(request):
 @login_required(login_url='login')
 def ticket_list_rows_partial(request):
     """Partial для строк таблицы списка тикетов (live updates)"""
+    from django.http import HttpResponse
+
     # Получить параметры фильтрации из GET параметров
     filter_status = request.GET.get('status', '')
     filter_priority = request.GET.get('priority', '')
+    filter_tag = request.GET.get('tag', '')
     filter_creator = request.GET.get('creator', '')
     filter_assigned = request.GET.get('assigned', '')
-    search_query = request.GET.get('search', '').strip()
-    sort = request.GET.get('sort', '-created_at')
+    search_query = (request.GET.get('q') or request.GET.get('search') or '').strip()
+    sort = request.GET.get('sort', 'id')
     is_archive = request.GET.get('archive') == '1'
+    current_signature = (request.GET.get('current_signature') or '').strip()
     
     # Начальный queryset
     if is_archive:
@@ -1259,6 +1453,8 @@ def ticket_list_rows_partial(request):
         tickets = tickets.filter(status_id=filter_status)
     if filter_priority:
         tickets = tickets.filter(priority_id=filter_priority)
+    if filter_tag:
+        tickets = tickets.filter(tags__id=filter_tag)
     if filter_creator:
         tickets = tickets.filter(creator_id=filter_creator)
     if filter_assigned:
@@ -1267,7 +1463,17 @@ def ticket_list_rows_partial(request):
     # Поиск
     if search_query:
         tickets = tickets.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
-    
+
+    tickets = tickets.distinct()
+
+    aggregate = tickets.aggregate(total=Count('id'), latest=Max('updated_at'))
+    latest = aggregate['latest']
+    latest_str = latest.isoformat() if latest else 'none'
+    server_signature = f"{aggregate['total']}|{latest_str}"
+
+    if current_signature == server_signature:
+        return HttpResponse(status=204)
+
     # Оптимизация запросов
     tickets = tickets.select_related(
         'status', 'priority', 'creator', 'assigned_to', 'workstation'
@@ -1281,6 +1487,7 @@ def ticket_list_rows_partial(request):
     context = {
         'tickets': page_obj.object_list,
         'is_archive': is_archive,
+        'signature': server_signature,
     }
     return render(request, 'tickets/partials/ticket_list_rows_partial.html', context)
 
@@ -1288,14 +1495,18 @@ def ticket_list_rows_partial(request):
 @login_required(login_url='login')
 def ticket_count_partial(request):
     """Partial для счётчика количества тикетов (live updates)"""
+    from django.http import HttpResponse
+
     is_archive = request.GET.get('archive') == '1'
+    current_count = (request.GET.get('current_count') or '').strip()
     
     # Получить параметры фильтрации
     filter_status = request.GET.get('status', '')
     filter_priority = request.GET.get('priority', '')
+    filter_tag = request.GET.get('tag', '')
     filter_creator = request.GET.get('creator', '')
     filter_assigned = request.GET.get('assigned', '')
-    search_query = request.GET.get('search', '').strip()
+    search_query = (request.GET.get('q') or request.GET.get('search') or '').strip()
     
     # Начальный queryset
     if is_archive:
@@ -1308,6 +1519,8 @@ def ticket_count_partial(request):
         tickets = tickets.filter(status_id=filter_status)
     if filter_priority:
         tickets = tickets.filter(priority_id=filter_priority)
+    if filter_tag:
+        tickets = tickets.filter(tags__id=filter_tag)
     if filter_creator:
         tickets = tickets.filter(creator_id=filter_creator)
     if filter_assigned:
@@ -1316,8 +1529,13 @@ def ticket_count_partial(request):
     # Поиск
     if search_query:
         tickets = tickets.filter(Q(title__icontains=search_query) | Q(description__icontains=search_query))
-    
+
+    tickets = tickets.distinct()
+
     count = tickets.count()
+
+    if current_count == str(count):
+        return HttpResponse(status=204)
     
     context = {'count': count}
     return render(request, 'tickets/partials/ticket_count_partial.html', context)

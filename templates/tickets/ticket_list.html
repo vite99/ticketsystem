@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}Список тикетов - Ticket System{% endblock %}
+{% block title %}РЎРїРёСЃРѕРє С‚РёРєРµС‚РѕРІ - Ticket System{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -189,6 +189,18 @@
             </div>
 
             <div class="filter-group">
+                <label for="tag">Тег</label>
+                <select name="tag" id="tag" class="form-select">
+                    <option value="">Все теги</option>
+                    {% for tag in tag_choices %}
+                    <option value="{{ tag.id }}" {% if selected_tag|stringformat:"s" == tag.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-search"></i> Применить
                 </button>
@@ -201,10 +213,13 @@
             <h5 class="mb-0">
                 <i class="fas fa-list"></i> {% if is_archive %}Архивные тикеты{% else %}Тикеты{% endif %}
             </h5>
-            <span id="ticket-count-container" 
-                hx-get="{% url 'ticket_count_partial' %}{% if is_archive %}?archive=1{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}"
+            <span id="ticket-count-container"
+                data-current-count="{{ page_obj.paginator.count }}"
+                hx-get="{% url 'ticket_count_partial' %}?{% if is_archive %}archive=1&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if selected_priority %}priority={{ selected_priority }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}"
                 hx-trigger="every 20s"
-                hx-swap="innerHTML swap:0.3s">
+                hx-swap="innerHTML"
+                hx-vals='js:{ current_count: document.getElementById("ticket-count-container")?.dataset.currentCount || "" }'
+                hx-on::after-settle="this.dataset.currentCount = this.textContent.trim()">
                 {{ page_obj.paginator.count }}
             </span>
         </div>
@@ -247,11 +262,14 @@
                     </tr>
                 </thead>
                 <tbody id="ticket-rows-container"
-                    hx-get="{% url 'ticket_list_rows_partial' %}{% if is_archive %}?archive=1{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}"
+                    data-current-signature="{{ table_signature }}"
+                    hx-get="{% url 'ticket_list_rows_partial' %}?{% if is_archive %}archive=1&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if selected_priority %}priority={{ selected_priority }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}{% if current_sort %}sort={{ current_sort|urlencode }}&{% endif %}{% if page_obj.number %}page={{ page_obj.number }}{% endif %}"
                     hx-trigger="every 20s"
-                    hx-swap="innerHTML swap:0.3s">
+                    hx-swap="innerHTML"
+                    hx-vals='js:{ current_signature: document.getElementById("ticket-rows-container")?.dataset.currentSignature || "" }'
+                    hx-on::after-settle="this.dataset.currentSignature = this.querySelector('tr')?.dataset.signature || this.dataset.currentSignature">
                     {% for ticket in tickets %}
-                    <tr class="ticket-row" onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
+                    <tr class="ticket-row" {% if forloop.first %}data-signature="{{ table_signature }}"{% endif %} onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
                         <td>
                             <strong style="color: var(--primary);">#{{ ticket.id }}</strong>
                         </td>
@@ -373,3 +391,4 @@
     {% endif %}
 </div>
 {% endblock %}
+

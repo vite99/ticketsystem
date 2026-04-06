@@ -195,6 +195,32 @@
 
     <div class="col-lg-6">
         <div class="card section-card h-100">
+            <div class="card-header">Распределение по тегам</div>
+            <div class="card-body">
+                {% if tag_stats %}
+                    {% for item in tag_stats %}
+                    <div class="stat-row">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge" style="background-color: {{ item.color }};">{{ item.name }}</span>
+                                <small class="text-muted">{{ item.percent }}%</small>
+                            </div>
+                            <strong>{{ item.count }}</strong>
+                        </div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: {{ item.percent }}%; background: {{ item.color }};"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Нет данных по тегам.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card section-card h-100">
             <div class="card-header">Топ создателей</div>
             <div class="card-body">
                 {% if top_creators %}
@@ -203,27 +229,6 @@
                         <div class="d-flex align-items-center gap-2">
                             <span class="leader-pill">{{ forloop.counter }}</span>
                             <span>{{ item.creator__username|default:"-" }}</span>
-                        </div>
-                        <strong>{{ item.count }}</strong>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-muted mb-0">Нет данных.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6">
-        <div class="card section-card h-100">
-            <div class="card-header">Топ исполнителей</div>
-            <div class="card-body">
-                {% if top_assignees %}
-                    {% for item in top_assignees %}
-                    <div class="leader-row d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="leader-pill">{{ forloop.counter }}</span>
-                            <span>{{ item.assigned_to__username|default:"-" }}</span>
                         </div>
                         <strong>{{ item.count }}</strong>
                     </div>
@@ -253,6 +258,27 @@
                 <div class="chart-wrap">
                     <canvas id="statusShareChart"></canvas>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card section-card h-100">
+            <div class="card-header">Топ исполнителей</div>
+            <div class="card-body">
+                {% if top_assignees %}
+                    {% for item in top_assignees %}
+                    <div class="leader-row d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="leader-pill">{{ forloop.counter }}</span>
+                            <span>{{ item.assigned_to__username|default:"-" }}</span>
+                        </div>
+                        <strong>{{ item.count }}</strong>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Нет данных.</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -297,7 +323,7 @@
         <div class="card text-center shadow-sm">
             <div class="card-body">
                 <div class="fs-2 fw-bold text-success">{{ resolved_tickets }}</div>
-                <div class="text-muted small">Решённых</div>
+                <div class="text-muted small">Решенных</div>
             </div>
         </div>
     </div>
@@ -308,6 +334,30 @@
                 <div class="text-muted small">Закрытых</div>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card section-card mb-4">
+    <div class="card-header">Мои теги</div>
+    <div class="card-body">
+        {% if tag_stats %}
+            {% for item in tag_stats %}
+            <div class="stat-row">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" style="background-color: {{ item.color }};">{{ item.name }}</span>
+                        <small class="text-muted">{{ item.percent }}%</small>
+                    </div>
+                    <strong>{{ item.count }}</strong>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: {{ item.percent }}%; background: {{ item.color }};"></div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">Теги пока не использовались.</p>
+        {% endif %}
     </div>
 </div>
 
@@ -386,8 +436,7 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 12 }
+                        position: 'bottom'
                     }
                 }
             }

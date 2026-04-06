@@ -569,14 +569,20 @@
                          class="flex-1 overflow-y-auto px-4 py-4"
                          hx-get="{% url 'ticket_comments_partial' ticket.id %}"
                          hx-trigger="every 15s"
-                         hx-swap="innerHTML swap:0.3s">
+                         hx-swap="beforeend"
+                         hx-vals='js:{
+                            after_id: (() => {
+                                const comments = document.querySelectorAll("#comments-container [data-comment-id]");
+                                return comments.length ? comments[comments.length - 1].dataset.commentId : "";
+                            })()
+                         }'>
                         <!-- HTMX загружает комментарии здесь -->
                         {% if comments %}
                             {% for comment in comments %}
                                 {% if not comment.is_internal or user == comment.author or user == ticket.creator or user == ticket.assigned_to or user.is_staff %}
                                     {% if comment.is_internal %}
                                         {# Внутренний комментарий #}
-                                        <div class="flex justify-start mb-4">
+                                        <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
                                             <div class="flex flex-col max-w-md">
                                                 <div class="flex items-baseline gap-2 mb-1">
                                                     <span class="text-sm font-semibold text-amber-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
@@ -627,7 +633,7 @@
                                         </div>
                                     {% elif comment.author == user %}
                                         {# Сообщение текущего пользователя (справа) #}
-                                        <div class="flex justify-end mb-4">
+                                        <div class="flex justify-end mb-4" data-comment-id="{{ comment.id }}">
                                             <div class="flex flex-col max-w-md">
                                                     <div class="flex items-baseline justify-end gap-2 mb-1">
                                                         <span class="text-xs text-blue-500">{{ comment.created_at|time:"H:i" }}</span>
@@ -675,7 +681,7 @@
                                         </div>
                                     {% else %}
                                         {# Сообщение других пользователей (слева) #}
-                                        <div class="flex justify-start mb-4">
+                                        <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
                                             <div class="flex flex-col max-w-md">
                                                 <div class="flex items-baseline gap-2 mb-1">
                                                     <span class="text-sm font-semibold text-slate-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
@@ -744,21 +750,7 @@
                     </div>
                 </div>
 
-                {% if user.is_authenticated and ticket.status.name != 'closed' %}
-                <div class="border-t border-slate-200 px-4 py-4 bg-slate-50">
-                    <h6 class="mb-4 font-semibold text-slate-700">
-                        <i class="fas fa-plus-circle text-indigo-600 me-2"></i> Добавить сообщение
-                    </h6>
-                    {% include "tickets/partials/comment_form_partial.html" %}
-                </div>
-                {% elif user.is_authenticated %}
-                <div class="border-t border-slate-200 px-4 py-4 bg-slate-50">
-                    <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                        <i class="fas fa-lock me-2 text-slate-500"></i>
-                        Комментарии отключены, потому что тикет закрыт.
-                    </div>
-                </div>
-                {% endif %}
+                {% include "tickets/partials/comment_section_partial.html" %}
             </div>
         </div>
 
@@ -798,20 +790,6 @@
                                 <td class="fw-semibold pe-3">
                                     {% if ticket.workstation %}
                                         {{ ticket.workstation }}
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="text-muted ps-3">Теги</td>
-                                <td class="pe-3">
-                                    {% if ticket.tags.all %}
-                                        {% for tag in ticket.tags.all %}
-                                            <span class="badge rounded-pill" style="background-color: {{ tag.color }}">
-                                                {{ tag.name }}
-                                            </span>
-                                        {% endfor %}
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
@@ -861,11 +839,64 @@
             </div>
 
             <div class="card shadow-sm mb-3">
+                <div class="card-header fw-bold">Теги</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        {% if ticket.tags.all %}
+                            {% for tag in ticket.tags.all %}
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <span class="badge rounded-pill" style="background-color: {{ tag.color }}">
+                                    {{ tag.name }}
+                                </span>
+                                {% if can_edit %}
+                                <form method="post" action="{% url 'remove_ticket_tag' ticket.id tag.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-link p-0 text-danger text-decoration-none"
+                                            title="Убрать тег"
+                                            onclick="return confirm('Убрать тег {{ tag.name }}?')">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Теги пока не добавлены.</span>
+                        {% endif %}
+                    </div>
+
+                    {% if can_edit and available_tags %}
+                    <form method="post" action="{% url 'add_ticket_tag' ticket.id %}" class="d-flex gap-2 align-items-center mt-3">
+                        {% csrf_token %}
+                        <select name="tag_id" class="form-select form-select-sm">
+                            <option value="">Выберите тег</option>
+                            {% for tag in available_tags %}
+                            <option value="{{ tag.id }}">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary flex-shrink-0" title="Добавить тег">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if can_edit and not available_tags %}
+                    <div class="small text-muted mt-3">Свободных тегов для добавления сейчас нет.</div>
+                    {% endif %}
+                    {% if user.is_staff %}
+                    <div class="small mt-3">
+                        <a href="{% url 'tag_list' %}" class="text-decoration-none">Управление тегами</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-3">
                 <div class="card-header fw-bold">История изменений</div>
                 <div class="card-body p-0">
                     {% if history_entries %}
                     <div class="list-group list-group-flush">
-                        {% for entry in history_entries %}
+                        {% for entry in recent_history_entries %}
                         <div class="list-group-item px-3 py-3">
                             <div class="d-flex justify-content-between align-items-start gap-3">
                                 <div>
@@ -896,6 +927,57 @@
                             </div>
                         </div>
                         {% endfor %}
+
+                        {% if older_history_entries %}
+                        <div id="history-more" style="display: none;">
+                            {% for entry in older_history_entries %}
+                            <div class="list-group-item px-3 py-3">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">
+                                            {{ entry.get_action_display }}
+                                        </div>
+                                        <div class="small text-muted">
+                                            {% if entry.actor %}
+                                                {{ entry.actor.get_full_name|default:entry.actor.username }}
+                                            {% else %}
+                                                Система
+                                            {% endif %}
+                                        </div>
+                                        {% if entry.old_value or entry.new_value %}
+                                        <div class="small mt-2">
+                                            {% if entry.old_value %}
+                                            <div class="text-muted">Было: {{ entry.old_value }}</div>
+                                            {% endif %}
+                                            {% if entry.new_value %}
+                                            <div>Стало: {{ entry.new_value }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted text-nowrap">
+                                        {{ entry.created_at|date:"d.m.Y H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="list-group-item px-3 py-2 bg-light">
+                            <button type="button"
+                                    id="history-toggle-btn"
+                                    class="btn btn-sm btn-outline-secondary w-100"
+                                    onclick="
+                                        const more = document.getElementById('history-more');
+                                        const btn = document.getElementById('history-toggle-btn');
+                                        const expanded = more.style.display !== 'none';
+                                        more.style.display = expanded ? 'none' : 'block';
+                                        btn.textContent = expanded ? 'Показать все действия' : 'Свернуть историю';
+                                    ">
+                                Показать все действия
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
                     {% else %}
                     <div class="px-3 py-3 text-muted small">
@@ -952,54 +1034,7 @@
             {% endif %}
 
             <div class="action-grid">
-                <!-- Блок для подтверждения решения (только для пользователя, когда статус "Решен") -->
-                {% if ticket.status.name == 'resolved' and request.user == ticket.creator and not request.user.is_staff %}
-                <div style="border: 2px solid #059669; background-color: #ecfdf5; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                    <div style="font-size: 1rem; font-weight: 600; color: #065f46; margin-bottom: 12px;">
-                        <i class="fas fa-check-circle"></i> Проблема решена?
-                    </div>
-                    <p style="color: #047857; margin: 0 0 12px 0; font-size: 0.9rem;">
-                        Если проблема решена, нажмите кнопку ниже, чтобы закрыть тикет. Если нет, сообщите нам об это.
-                    </p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <!-- Кнопка: Подтверждаю -->
-                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
-                            {% csrf_token %}
-                            <input type="hidden" name="status" value="closed">
-                            <button type="submit" class="btn" style="background-color: #059669; color: white; border: none; font-size: 0.9rem; padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;">
-                                <i class="fas fa-check"></i> Подтверждаю (Закрыть)
-                            </button>
-                        </form>
-                        
-                        <!-- Кнопка: Проблема не решена -->
-                        <button class="btn" onclick="document.getElementById('unresolved-modal').style.display='flex';" style="background-color: #dc2626; color: white; border: none; font-size: 0.9rem; padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;">
-                            <i class="fas fa-times"></i> Проблема не решена
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Модальное окно для "Проблема не решена" -->
-                <div id="unresolved-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-                    <div style="background: white; padding: 24px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-                        <h3 style="margin: 0 0 16px 0; color: #1f2937;">Проблема не решена</h3>
-                        <p style="color: #6b7280; margin: 0 0 16px 0;">Пожалуйста, опишите, почему проблема не решена:</p>
-                        
-                        <form method="POST" action="{% url 'mark_ticket_unresolved' ticket.id %}">
-                            {% csrf_token %}
-                            <textarea name="comment" required placeholder="Введите комментарий..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; min-height: 100px; box-sizing: border-box; margin-bottom: 12px;"></textarea>
-                            
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <button type="submit" class="btn" style="background-color: #dc2626; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                                    <i class="fas fa-arrow-left"></i> Вернуть в работу
-                                </button>
-                                <button type="button" class="btn" onclick="document.getElementById('unresolved-modal').style.display='none';" style="background-color: #e5e7eb; color: #374151; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                                    Отмена
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                {% endif %}
+                {% include "tickets/partials/resolution_section_partial.html" %}
                 
                 <!-- Кнопки управления статусом (только для администраторов и назначенных) -->
                 {% if request.user.is_staff or request.user == ticket.assigned_to %}
@@ -1082,6 +1117,13 @@
 
 {% block extra_js %}
 <script>
+    function updateCommentCount() {
+        const container = document.getElementById('comments-container');
+        const badge = document.getElementById('comment-count');
+        if (!container || !badge) return;
+        badge.textContent = container.querySelectorAll('[data-comment-id]').length;
+    }
+
     // Функция для автоматической прокрутки чата в конец
     function scrollToBottom() {
         const container = document.getElementById('comments-container');
@@ -1094,12 +1136,14 @@
 
     // Прокруток при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
+        updateCommentCount();
         scrollToBottom();
     });
 
     // HTMX: прокруток после обновления комментариев
     document.addEventListener('htmx:afterSettle', function(event) {
         if (event.detail.target.id === 'comments-container') {
+            updateCommentCount();
             scrollToBottom();
         }
     });
@@ -1107,6 +1151,7 @@
     // Прокруток при отправке формы комментария
     document.addEventListener('htmx:afterRequest', function(event) {
         if (event.detail.target.id === 'comment-form') {
+            updateCommentCount();
             scrollToBottom();
         }
     });

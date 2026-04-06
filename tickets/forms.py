@@ -30,6 +30,22 @@ class WorkstationForm(forms.ModelForm):
         }
 
 
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ['name', 'description', 'color']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: Сеть'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Краткое описание тега'}),
+            'color': forms.TextInput(attrs={'class': 'form-control form-control-color', 'type': 'color'}),
+        }
+        labels = {
+            'name': 'Название',
+            'description': 'Описание',
+            'color': 'Цвет',
+        }
+
+
 class TicketForm(forms.ModelForm):
     """Форма для создания и редактирования тикета (для администраторов)."""
 
