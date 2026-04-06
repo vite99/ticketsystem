@@ -876,6 +876,8 @@ def my_dashboard(request):
 @require_approval
 def ticket_statistics(request):
     """РЎС‚Р°С‚РёСЃС‚РёРєР° РїРѕ С‚РёРєРµС‚Р°Рј."""
+    selected_tag = (request.GET.get('tag') or '').strip()
+
     if request.user.is_staff:
         tickets = Ticket.objects.all()
         scope_label = 'Все тикеты'
@@ -884,6 +886,9 @@ def ticket_statistics(request):
             Q(creator=request.user) | Q(assigned_to=request.user)
         ).distinct()
         scope_label = 'Мои тикеты'
+
+    if selected_tag:
+        tickets = tickets.filter(tags__id=selected_tag).distinct()
 
     total_tickets = tickets.count()
     status_stats = (
@@ -959,6 +964,8 @@ def ticket_statistics(request):
         'top_assignees': top_assignees,
         'trend_labels': trend_labels,
         'trend_counts': trend_counts,
+        'tag_choices': Tag.objects.all().order_by('name'),
+        'selected_tag': selected_tag,
     }
     return render(request, 'tickets/ticket_statistics.html', context)
 

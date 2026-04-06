@@ -104,12 +104,57 @@
         <a href="{% url 'ticket_list' %}" class="btn btn-light btn-sm">К списку тикетов</a>
     </div>
 </div>
+{% else %}
+<div class="stats-hero mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <h2 class="mb-1">Моя статистика</h2>
+            <div class="muted">Мои тикеты</div>
+        </div>
+        <a href="{% url 'ticket_list' %}" class="btn btn-light btn-sm">К списку тикетов</a>
+    </div>
+</div>
+{% endif %}
 
+<div class="card section-card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="tag" class="form-label fw-semibold">Тег</label>
+                <select name="tag" id="tag" class="form-select">
+                    <option value="">Все теги</option>
+                    {% for tag in tag_choices %}
+                    <option value="{{ tag.id }}" {% if selected_tag|stringformat:"s" == tag.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">Применить</button>
+            </div>
+            {% if selected_tag %}
+            <div class="col-md-auto">
+                <a href="{% url 'ticket_statistics' %}" class="btn btn-outline-secondary">Сбросить</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if not request.user.is_staff and total_tickets == 0 %}
+<div class="text-center text-muted py-5">
+    <p class="fs-5">У вас пока нет тикетов</p>
+    <a href="{% url 'ticket_create' %}" class="btn btn-primary">
+        Создать первый тикет
+    </a>
+</div>
+{% else %}
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
         <div class="card metric-card h-100">
             <div class="card-body">
-                <div class="text-muted small">Всего</div>
+                <div class="text-muted small">{% if request.user.is_staff %}Всего{% else %}Всего обращений{% endif %}</div>
                 <div class="metric-value">{{ total_tickets }}</div>
             </div>
         </div>
@@ -140,6 +185,7 @@
     </div>
 </div>
 
+{% if request.user.is_staff %}
 <div class="row g-4">
     <div class="col-lg-6">
         <div class="card section-card h-100">
@@ -284,59 +330,6 @@
     </div>
 </div>
 {% else %}
-<div class="stats-hero mb-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-        <div>
-            <h2 class="mb-1">Моя статистика</h2>
-            <div class="muted">Мои тикеты</div>
-        </div>
-        <a href="{% url 'ticket_list' %}" class="btn btn-light btn-sm">К списку тикетов</a>
-    </div>
-</div>
-
-{% if total_tickets == 0 %}
-<div class="text-center text-muted py-5">
-    <p class="fs-5">У вас пока нет тикетов</p>
-    <a href="{% url 'ticket_create' %}" class="btn btn-primary">
-        Создать первый тикет
-    </a>
-</div>
-{% else %}
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-primary">{{ total_tickets }}</div>
-                <div class="text-muted small">Всего обращений</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-warning">{{ open_tickets }}</div>
-                <div class="text-muted small">Открытых</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-success">{{ resolved_tickets }}</div>
-                <div class="text-muted small">Решенных</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <div class="fs-2 fw-bold text-secondary">{{ closed_tickets }}</div>
-                <div class="text-muted small">Закрытых</div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="card section-card mb-4">
     <div class="card-header">Мои теги</div>
     <div class="card-body">
