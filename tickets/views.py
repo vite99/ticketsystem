@@ -534,6 +534,15 @@ def add_comment(request, ticket_id):
             comment.author = request.user
             comment.save()
 
+            # Обработка загруженных файлов
+            if request.FILES.getlist('attachments'):
+                for uploaded_file in request.FILES.getlist('attachments'):
+                    Attachment.objects.create(
+                        comment=comment,
+                        file=uploaded_file,
+                        uploaded_by=request.user,
+                    )
+
             creator_user = ticket.creator
             if (
                 creator_user

@@ -2,7 +2,8 @@
       hx-target="#comments-container" 
       hx-select="#comments-container > *"
       hx-swap="innerHTML swap:0.3s"
-      hx-on::after-request="if(event.detail.xhr.status === 201) this.reset()">
+      hx-on::after-request="if(event.detail.xhr.status === 201) { this.reset(); document.getElementById('attachments-list').innerHTML = ''; }"
+      enctype="multipart/form-data">
     {% csrf_token %}
     
     <div class="form-group mb-3">
@@ -20,6 +21,25 @@
         <div class="invalid-feedback d-block">{{ form.content.errors }}</div>
         {% endif %}
     </div>
+
+    <!-- Загрузка файлов -->
+    <div class="form-group mb-3">
+        <label for="file-input" class="form-label" style="font-weight: 500; color: var(--fg-primary);">
+            <i class="fas fa-paperclip"></i> Вложения (опционально)
+        </label>
+        <input type="file" 
+               id="file-input" 
+               class="form-control"
+               accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+               style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px;"
+               onchange="addAttachment(this)">
+        <small style="color: var(--fg-muted); display: block; margin-top: 6px;">
+            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP (макс. размер файла зависит от сервера)
+        </small>
+    </div>
+
+    <!-- Список загруженных файлов (скрытый, но отправляется как FormData) -->
+    <div id="attachments-list" class="mb-3"></div>
 
     {% if form.is_internal %}
     <div class="form-check mb-3">
@@ -46,3 +66,65 @@
         <i class="fas fa-paper-plane"></i> Отправить
     </button>
 </form>
+
+<script>
+// Хранилище файлов в памяти (так как HTML form не поддерживает несколько файлов через input[type=file])
+let uploadedFiles = [];
+
+function addAttachment(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        uploadedFiles.push(file);
+        
+        // Показать загруженный файл
+        const attachmentsList = document.getElementById('attachments-list');
+        const fileItem = document.createElement('div');
+        fileItem.className = 'alert alert-info d-flex justify-content-between align-items-center';
+        fileItem.innerHTML = `
+            <span>
+                <i class="fas fa-file"></i> ${file.name} (${(file.size / 1024).toFixed(2)} KB)
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-danger" 
+                    onclick="removeAttachment(this, '${file.name}')">
+                <i class="fas fa-trash"></i> Удалить
+            </button>
+        `;
+        attachmentsList.appendChild(fileItem);
+        
+        // Очистить input для возможности выбрать еще один файл
+        input.value = '';
+    }
+}
+
+function removeAttachment(btn, fileName) {
+    btn.closest('.alert').remove();
+    uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
+}
+
+// Перехватить submission формы для добавления файлов
+document.addEventListener('htmx:xhr:progress', function(evt) {
+    if (evt.detail.loaded && evt.detail.total) {
+        console.log('Upload progress:', Math.round((evt.detail.loaded / evt.detail.total) * 100) + '%');
+    }
+});
+
+// Обработка FormData с файлами
+document.querySelector('form').addEventListener('htmx:configRequest', function(evt) {
+    if (uploadedFiles.length > 0) {
+        const formData = new FormData();
+        
+        // Добавить основные поля
+        formData.append('content', document.querySelector('[name="content"]').value);
+        formData.append('is_internal', document.querySelector('[name="is_internal"]').checked ? 'on' : 'off');
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name="csrfmiddlewaretoken"]').value);
+        
+        // Добавить файлы
+        uploadedFiles.forEach((file, index) => {
+            formData.append(`attachments`, file);
+        });
+        
+        evt.detail.body = formData;
+        evt.detail.headers['Content-Type'] = undefined; // Пусть браузер установит правильный Content-Type
+    }
+});
+</script>

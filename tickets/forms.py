@@ -1,7 +1,7 @@
 ﻿from django import forms
 from django.contrib.auth.models import User
 
-from .models import Comment, Ticket, UserProfile, Tag, Workstation
+from .models import Comment, Ticket, UserProfile, Tag, Workstation, Attachment
 
 
 TICKET_TOPIC_PRESETS = (
@@ -318,3 +318,25 @@ class RegistrationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+class CommentAttachmentForm(forms.ModelForm):
+    """Форма для загрузки вложений к комментарию"""
+    
+    class Meta:
+        model = Attachment
+        fields = ['file', 'description']
+        widgets = {
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip',
+            }),
+            'description': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Описание файла (опционально)',
+            }),
+        }
+        labels = {
+            'file': 'Файл',
+            'description': 'Описание',
+        }
