@@ -253,6 +253,7 @@ def ticket_detail(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     comments = ticket.comments.all()
     attachments = ticket.attachments.all()
+    history_entries = ticket.history.select_related('actor').all()[:20]
     
     # РџСЂРѕРІРµСЂРєР° РїСЂР°РІ РґРѕСЃС‚СѓРїР°
     can_edit = request.user == ticket.creator or request.user == ticket.assigned_to or request.user.is_staff
@@ -268,6 +269,7 @@ def ticket_detail(request, ticket_id):
         'ticket': ticket,
         'comments': comments,
         'attachments': attachments,
+        'history_entries': history_entries,
         'can_edit': can_edit,
         'can_cancel_ticket': can_cancel_ticket,
         'now': timezone.now(),
@@ -344,6 +346,14 @@ def ticket_create(request):
                     file=uploaded_file,
                     uploaded_by=request.user,
                 )
+
+            TicketHistory.objects.create(
+                ticket=ticket,
+                actor=request.user,
+                action=TicketHistory.ACTION_CREATED,
+                old_value='',
+                new_value=f'Создан тикет "{ticket.title}"',
+            )
             
             # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± СѓСЃРїРµС€РЅРѕРј СЃРѕР·РґР°РЅРёРё
             messages.success(request, f'✅ Тикет #{ticket.id} успешно создан!')
@@ -367,6 +377,15 @@ def ticket_edit(request, ticket_id):
     form_class = TicketForm if request.user.is_staff else TicketFormUser
     
     if request.method == 'POST':
+        old_status = ticket.status
+        old_priority = ticket.priority
+        old_assigned_to = ticket.assigned_to
+        old_title = ticket.title
+        old_description = ticket.description
+        old_due_date = ticket.due_date
+        old_workstation = ticket.workstation
+        old_estimated_hours = ticket.estimated_hours
+
         form = form_class(request.POST, request.FILES, instance=ticket)
         if form.is_valid():
             ticket = form.save(commit=False)
@@ -391,6 +410,54 @@ def ticket_edit(request, ticket_id):
                     ticket=ticket,
                     file=uploaded_file,
                     uploaded_by=request.user,
+                )
+
+            changes = []
+            if old_title != ticket.title:
+                changes.append('заголовок')
+            if old_description != ticket.description:
+                changes.append('описание')
+            if old_due_date != ticket.due_date:
+                changes.append('срок')
+            if old_workstation != ticket.workstation:
+                changes.append('рабочее место')
+            if old_estimated_hours != ticket.estimated_hours:
+                changes.append('часы')
+
+            if old_status != ticket.status:
+                TicketHistory.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    action=TicketHistory.ACTION_STATUS_CHANGED,
+                    old_value=str(old_status) if old_status else 'Не указано',
+                    new_value=str(ticket.status) if ticket.status else 'Не указано',
+                )
+
+            if old_priority != ticket.priority:
+                TicketHistory.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    action=TicketHistory.ACTION_PRIORITY_CHANGED,
+                    old_value=str(old_priority) if old_priority else 'Не указано',
+                    new_value=str(ticket.priority) if ticket.priority else 'Не указано',
+                )
+
+            if old_assigned_to != ticket.assigned_to:
+                TicketHistory.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    action=TicketHistory.ACTION_ASSIGNED,
+                    old_value=(old_assigned_to.get_full_name() or old_assigned_to.username) if old_assigned_to else 'Не назначено',
+                    new_value=(ticket.assigned_to.get_full_name() or ticket.assigned_to.username) if ticket.assigned_to else 'Не назначено',
+                )
+
+            if changes:
+                TicketHistory.objects.create(
+                    ticket=ticket,
+                    actor=request.user,
+                    action=TicketHistory.ACTION_UPDATED,
+                    old_value='',
+                    new_value='Изменены поля: ' + ', '.join(changes),
                 )
             
             # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± СѓСЃРїРµС€РЅРѕРј РѕР±РЅРѕРІР»РµРЅРёРё
@@ -563,6 +630,10 @@ def add_comment(request, ticket_id):
     from django.core.cache import cache
 
     ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if ticket.status and ticket.status.name == Status.CLOSED:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Комментарии для закрытого тикета отключены'}, status=403)
     
     if request.method == 'POST':
         # Получаем данные из POST и FILES
