@@ -1,11 +1,4 @@
-<form id="comment-form" 
-      hx-post="{% url 'add_comment' ticket.id %}" 
-      hx-target="#comments-container" 
-      hx-select="#comments-container > *"
-      hx-swap="innerHTML swap:0.3s"
-      hx-on::after-request="if(event.detail.xhr.status === 201) { document.getElementById('comment-form').reset(); document.getElementById('attachments-list').innerHTML = ''; uploadedFiles = []; }"
-      enctype="multipart/form-data"
-      novalidate>
+<form id="comment-form" enctype="multipart/form-data" novalidate data-ticket-id="{{ ticket.id }}">
     {% csrf_token %}
     
     <div class="form-group mb-3">
@@ -30,17 +23,31 @@
         </label>
         <input type="file" 
                id="file-input" 
+               name="attachments"
                class="form-control"
                accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px;"
                onchange="addAttachment(this)">
         <small style="color: var(--fg-muted); display: block; margin-top: 6px;">
-            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP
+            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP (макс. 10MB)
         </small>
     </div>
 
-    <!-- Список загруженных файлов -->
+    <!-- Список загруженных файлов с прогресс барами -->
     <div id="attachments-list" class="mb-3"></div>
+
+    <!-- Прогресс бар загрузки -->
+    <div id="upload-progress" style="display: none; margin-bottom: 16px;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <small style="color: var(--fg-muted); font-weight: 500;">
+                <i class="fas fa-cloud-upload-alt"></i> Загрузка...
+            </small>
+            <small id="progress-percent" style="color: var(--primary); font-weight: 600;">0%</small>
+        </div>
+        <div style="width: 100%; height: 6px; background-color: var(--border-subtle); border-radius: 3px; overflow: hidden;">
+            <div id="progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--primary-strong) 100%); transition: width 0.3s ease;"></div>
+        </div>
+    </div>
 
     {% if form.is_internal %}
     <div class="form-check mb-3">
@@ -70,11 +77,10 @@
 </form>
 
 <script>
-// Хранилище файлов в памяти
-let uploadedFiles = [];
+let uploadedFilesData = new DataTransfer();
 
 function addAttachment(input) {
-    if (input.files && input.files[0]) {
+    if (input.files && input.files.length > 0) {
         const file = input.files[0];
         
         // Проверка размера (макс 10MB)
@@ -84,17 +90,23 @@ function addAttachment(input) {
             return;
         }
         
-        uploadedFiles.push(file);
+        // Добавить в DataTransfer
+        uploadedFilesData.items.add(file);
         
-        // Показать загруженный файл
+        // Обновить input files
+        input.files = uploadedFilesData.files;
+        
+        // Показать в списке
         const attachmentsList = document.getElementById('attachments-list');
         const fileItem = document.createElement('div');
-        fileItem.className = 'alert alert-info d-flex justify-content-between align-items-center';
-        fileItem.style.marginBottom = '8px';
+        fileItem.className = 'd-flex justify-content-between align-items-center p-3 bg-light rounded-2 mb-2';
+        fileItem.style.cssText = 'background-color: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px;';
         fileItem.innerHTML = `
-            <span>
-                <i class="fas fa-file"></i> ${file.name} (${(file.size / 1024).toFixed(2)} KB)
-            </span>
+            <div>
+                <i class="fas fa-file me-2" style="color: var(--primary);"></i>
+                <strong>${file.name}</strong>
+                <small class="d-block text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+            </div>
             <button type="button" class="btn btn-sm btn-outline-danger" 
                     onclick="removeAttachment(this, '${file.name}')">
                 <i class="fas fa-trash"></i>
@@ -108,47 +120,126 @@ function addAttachment(input) {
 }
 
 function removeAttachment(btn, fileName) {
-    btn.closest('.alert').remove();
-    uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
+    btn.closest('div').remove();
+    
+    // Удалить из DataTransfer
+    const newDataTransfer = new DataTransfer();
+    Array.from(uploadedFilesData.files).forEach(file => {
+        if (file.name !== fileName) {
+            newDataTransfer.items.add(file);
+        }
+    });
+    uploadedFilesData = newDataTransfer;
+    document.getElementById('file-input').files = uploadedFilesData.files;
 }
 
-// Перехватить submit формы для добавления файлов
+// Обработка отправки формы
 document.getElementById('comment-form').addEventListener('submit', function(evt) {
+    evt.preventDefault();
+    
+    const form = this;
     const contentField = document.getElementById('id_content');
     const commentText = contentField.value.trim();
+    const hasFiles = uploadedFilesData.files.length > 0;
     
-    // Проверка: должен быть либо комментарий, либо файл
-    if (!commentText && uploadedFiles.length === 0) {
-        evt.preventDefault();
+    // Валидация
+    if (!commentText && !hasFiles) {
         contentField.classList.add('is-invalid');
-        contentField.style.borderColor = 'var(--danger)';
+        contentField.style.borderColor = '#dc2626';
+        contentField.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
         return false;
     }
     
-    // Если только файлы и нет текста - это ОК
-    // Если текст есть - очищаем класс ошибки
-    if (commentText) {
-        contentField.classList.remove('is-invalid');
-        contentField.style.borderColor = '';
-    }
-});
-
-// Обработка FormData с файлами через HTMX
-document.getElementById('comment-form').addEventListener('htmx:configRequest', function(evt) {
-    if (uploadedFiles.length > 0) {
-        const formData = new FormData();
+    contentField.classList.remove('is-invalid');
+    contentField.style.borderColor = '';
+    contentField.style.boxShadow = '';
+    
+    // Создать FormData
+    const formData = new FormData();
+    formData.append('content', commentText);
+    const isInternalCheckbox = document.getElementById('id_is_internal');
+    formData.append('is_internal', isInternalCheckbox?.checked ? 'on' : 'off');
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name="csrfmiddlewaretoken"]').value);
+    
+    // Добавить файлы
+    Array.from(uploadedFilesData.files).forEach(file => {
+        formData.append('attachments', file);
+    });
+    
+    // Показать прогресс бар
+    const progressDiv = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+    const submitBtn = document.getElementById('comment-submit-btn');
+    
+    progressDiv.style.display = 'block';
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.6';
+    submitBtn.style.cursor = 'not-allowed';
+    
+    // Отправить через fetch с отслеживанием прогресса
+    const xhr = new XMLHttpRequest();
+    
+    // Отслеживание прогресса загрузки
+    xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            progressBar.style.width = percentComplete + '%';
+            progressPercent.textContent = percentComplete + '%';
+        }
+    });
+    
+    // Обработка завершения
+    xhr.addEventListener('load', () => {
+        if (xhr.status === 201) {
+            // Успех - вставить новый комментарий
+            const commentsContainer = document.getElementById('comments-container');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xhr.responseText, 'text/html');
+            const newComment = doc.body.firstChild;
+            
+            if (newComment) {
+                commentsContainer.appendChild(newComment);
+                // Прокрутить в конец
+                commentsContainer.scrollTop = commentsContainer.scrollHeight;
+            }
+            
+            // Очистить форму
+            form.reset();
+            uploadedFilesData = new DataTransfer();
+            document.getElementById('attachments-list').innerHTML = '';
+        } else if (xhr.status === 400) {
+            // Ошибка валидации
+            try {
+                const error = JSON.parse(xhr.responseText);
+                alert('Ошибка: ' + error.error);
+            } catch (e) {
+                alert('Ошибка при отправке комментария');
+            }
+        } else {
+            alert('Ошибка при отправке комментария: ' + xhr.status);
+        }
         
-        // Добавить основные поля
-        formData.append('content', document.getElementById('id_content').value);
-        formData.append('is_internal', document.getElementById('id_is_internal').checked ? 'on' : 'off');
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name="csrfmiddlewaretoken"]').value);
-        
-        // Добавить каждый файл
-        uploadedFiles.forEach((file) => {
-            formData.append('attachments', file);
-        });
-        
-        evt.detail.body = formData;
-    }
+        // Скрыть прогресс бар
+        progressDiv.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressPercent.textContent = '0%';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+    });
+    
+    // Обработка ошибок
+    xhr.addEventListener('error', () => {
+        alert('Ошибка сети при загрузке');
+        progressDiv.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+    });
+    
+    const ticketId = form.dataset.ticketId;
+    xhr.open('POST', `/${ticketId}/comment/`);
+    xhr.send(formData);
 });
 </script>

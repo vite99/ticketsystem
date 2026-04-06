@@ -276,6 +276,44 @@ def ticket_detail(request, ticket_id):
 
 
 @login_required(login_url='login')
+def load_more_comments(request, ticket_id):
+    """Загрузка старых комментариев"""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    # Получаем параметр offset
+    offset = int(request.GET.get('offset', 10))
+    COMMENTS_PER_PAGE = 10
+    
+    # Получаем все комментарии в порядке возрастания
+    all_comments = list(ticket.comments.all())
+    total = len(all_comments)
+    
+    # Вычисляем индексы для этой партии
+    # Если offset=10, берём комментарии с индекса (total-20) до (total-10)
+    start = max(0, total - offset - COMMENTS_PER_PAGE)
+    end = max(0, total - offset)
+    
+    # Берём и разворачиваем обратно (чтобы новые комментарии были внизу)
+    comments_batch = all_comments[start:end]
+    
+    # Проверяем, есть ли ещё старые комментарии
+    has_more = start > 0
+    next_offset = offset + COMMENTS_PER_PAGE
+    
+    context = {
+        'comments': comments_batch,
+        'ticket': ticket,
+        'user': request.user,
+        'has_more': has_more,
+        'next_offset': next_offset,
+        'remaining_to_load': max(0, total - next_offset),
+        'now': timezone.now(),
+    }
+    
+    return render(request, 'tickets/partials/older_comments.html', context)
+
+
+@login_required(login_url='login')
 def ticket_create(request):
     """РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ С‚РёРєРµС‚Р°"""
     # Р’С‹Р±РёСЂР°РµРј С„РѕСЂРјСѓ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЂРѕР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
@@ -527,28 +565,31 @@ def add_comment(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     
     if request.method == 'POST':
-        # Передаём и POST, и FILES для обработки multipart
-        form = CommentForm(request.POST, request.FILES)
+        # Получаем данные из POST и FILES
+        content_text = request.POST.get('content', '').strip()
+        is_internal = request.POST.get('is_internal') == 'on'
+        uploaded_files = request.FILES.getlist('attachments')
         
         # Валидация: должен быть либо текст, либо файлы
-        content_text = request.POST.get('content', '').strip()
-        has_files = len(request.FILES.getlist('attachments')) > 0
+        if not content_text and not uploaded_files:
+            from django.http import JsonResponse
+            response = JsonResponse({'error': 'Комментарий или файл обязателен'}, status=400)
+            return response
         
-        if not content_text and not has_files:
-            # Ошибка: нет ни текста, ни файлов
-            if request.headers.get('HX-Request') == 'true':
-                return render(request, 'tickets/partials/comment_form_partial.html', 
-                            {'form': form, 'ticket': ticket}, status=400)
-        
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.ticket = ticket
-            comment.author = request.user
+        # Создаём комментарий
+        try:
+            comment = Comment(
+                ticket=ticket,
+                author=request.user,
+                content=content_text,
+                is_internal=is_internal
+            )
+            comment.full_clean()
             comment.save()
-
+            
             # Обработка загруженных файлов
-            if request.FILES.getlist('attachments'):
-                for uploaded_file in request.FILES.getlist('attachments'):
+            if uploaded_files:
+                for uploaded_file in uploaded_files:
                     Attachment.objects.create(
                         comment=comment,
                         file=uploaded_file,
@@ -560,7 +601,7 @@ def add_comment(request, ticket_id):
                 creator_user
                 and creator_user != request.user
                 and not creator_user.is_staff
-                and not comment.is_internal
+                and not is_internal
             ):
                 creator_profile = getattr(creator_user, 'profile', None)
                 creator_notify_browser = getattr(creator_profile, 'notify_browser', True) if creator_profile else True
@@ -578,7 +619,7 @@ def add_comment(request, ticket_id):
 
             assigned_user = ticket.assigned_to
             if assigned_user and assigned_user != request.user:
-                should_notify = not comment.is_internal or assigned_user.is_staff
+                should_notify = not is_internal or assigned_user.is_staff
                 if should_notify:
                     cache_key = f'notification_comments_{assigned_user.id}'
                     notifications = cache.get(cache_key, [])
@@ -590,25 +631,16 @@ def add_comment(request, ticket_id):
                         'url': reverse('ticket_detail', kwargs={'ticket_id': ticket.id}),
                     })
                     cache.set(cache_key, notifications, timeout=None)
+            
             send_comment_notification(comment)
             
-            # Проверка: это AJAX запрос от HTMX?
-            if request.headers.get('HX-Request') == 'true':
-                response = render(request, 'tickets/partials/new_comment_partial.html', {'comment': comment})
-                response.status_code = 201  # Created
-                return response
-            else:
-                # Обычный POST - редирект
-                return redirect('ticket_detail', ticket_id=ticket.id)
-        else:
-            # Ошибки валидации для AJAX
-            if request.headers.get('HX-Request') == 'true':
-                return render(request, 'tickets/partials/comment_form_partial.html', 
-                            {'form': form, 'ticket': ticket}, status=400)
-    else:
-        form = CommentForm()
-    
-    return render(request, 'tickets/comment_form.html', {'form': form, 'ticket': ticket})
+            response = render(request, 'tickets/partials/new_comment_partial.html', {'comment': comment})
+            response.status_code = 201
+            return response
+            
+        except Exception as e:
+            from django.http import JsonResponse
+            return JsonResponse({'error': str(e)}, status=400)
 
 
 @login_required(login_url='login')

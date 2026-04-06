@@ -105,21 +105,6 @@ class Workstation(models.Model):
         return f"{self.room} - {self.number}"
 
 
-class Tag(models.Model):
-    """Тег для категоризации тикетов."""
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    color = models.CharField(max_length=7, default='#0066cc')
-    
-    class Meta:
-        verbose_name = 'Тег'
-        verbose_name_plural = 'Теги'
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
-
-
 class Ticket(models.Model):
     """Основная модель тикета."""
     URGENCY_LOW = 'low'
@@ -219,7 +204,7 @@ class Comment(models.Model):
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
-        ordering = ['-created_at']
+        ordering = ['created_at']
         indexes = [
             models.Index(fields=['ticket', '-created_at']),
         ]

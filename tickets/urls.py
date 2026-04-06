@@ -27,6 +27,7 @@ urlpatterns = [
     
     # Комментарии
     path('<int:ticket_id>/comment/', views.add_comment, name='add_comment'),
+    path('<int:ticket_id>/load-more-comments/', views.load_more_comments, name='load_more_comments'),
     
     # Личный кабинет
     path('dashboard/', views.my_dashboard, name='dashboard'),
