@@ -527,7 +527,19 @@ def add_comment(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
     
     if request.method == 'POST':
-        form = CommentForm(request.POST)
+        # Передаём и POST, и FILES для обработки multipart
+        form = CommentForm(request.POST, request.FILES)
+        
+        # Валидация: должен быть либо текст, либо файлы
+        content_text = request.POST.get('content', '').strip()
+        has_files = len(request.FILES.getlist('attachments')) > 0
+        
+        if not content_text and not has_files:
+            # Ошибка: нет ни текста, ни файлов
+            if request.headers.get('HX-Request') == 'true':
+                return render(request, 'tickets/partials/comment_form_partial.html', 
+                            {'form': form, 'ticket': ticket}, status=400)
+        
         if form.is_valid():
             comment = form.save(commit=False)
             comment.ticket = ticket

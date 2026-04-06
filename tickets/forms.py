@@ -165,6 +165,20 @@ class CommentForm(forms.ModelForm):
             'content': 'Комментарий',
             'is_internal': 'Внутренний комментарий (не видно клиентам)',
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        content = cleaned_data.get('content', '').strip()
+        
+        # Валидация: должен быть либо комментарий, либо файлы
+        # Проверяем файлы через контекст (они приходят в request.FILES)
+        # Здесь мы просто проверяем, что не пустое
+        if not content:
+            # Это разрешено только при условии, что будут файлы
+            # Полная проверка проходит в view
+            pass
+        
+        return cleaned_data
 
 
 class UserProfileForm(forms.ModelForm):

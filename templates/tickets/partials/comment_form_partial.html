@@ -1,25 +1,26 @@
-<form hx-post="{% url 'add_comment' ticket.id %}" 
+<form id="comment-form" 
+      hx-post="{% url 'add_comment' ticket.id %}" 
       hx-target="#comments-container" 
       hx-select="#comments-container > *"
       hx-swap="innerHTML swap:0.3s"
-      hx-on::after-request="if(event.detail.xhr.status === 201) { this.reset(); document.getElementById('attachments-list').innerHTML = ''; }"
-      enctype="multipart/form-data">
+      hx-on::after-request="if(event.detail.xhr.status === 201) { document.getElementById('comment-form').reset(); document.getElementById('attachments-list').innerHTML = ''; uploadedFiles = []; }"
+      enctype="multipart/form-data"
+      novalidate>
     {% csrf_token %}
     
     <div class="form-group mb-3">
-        <label for="{{ form.content.id_for_label }}" class="form-label" style="font-weight: 500; color: var(--fg-primary);">
+        <label for="id_content" class="form-label" style="font-weight: 500; color: var(--fg-primary);">
             Ваш комментарий
         </label>
         <textarea name="content" 
-                  id="{{ form.content.id_for_label }}" 
+                  id="id_content" 
                   class="form-control" 
                   rows="3" 
                   placeholder="Напишите комментарий..."
-                  style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px; font-family: 'Inter', sans-serif;"
-                  required></textarea>
-        {% if form.content.errors %}
-        <div class="invalid-feedback d-block">{{ form.content.errors }}</div>
-        {% endif %}
+                  style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px; font-family: 'Inter', sans-serif;"></textarea>
+        <small style="color: var(--fg-muted); display: block; margin-top: 4px;">
+            <span id="comment-required-hint">Комментарий или файл обязателен</span>
+        </small>
     </div>
 
     <!-- Загрузка файлов -->
@@ -34,21 +35,21 @@
                style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px;"
                onchange="addAttachment(this)">
         <small style="color: var(--fg-muted); display: block; margin-top: 6px;">
-            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP (макс. размер файла зависит от сервера)
+            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP
         </small>
     </div>
 
-    <!-- Список загруженных файлов (скрытый, но отправляется как FormData) -->
+    <!-- Список загруженных файлов -->
     <div id="attachments-list" class="mb-3"></div>
 
     {% if form.is_internal %}
     <div class="form-check mb-3">
         <input type="checkbox" 
                name="is_internal" 
-               id="{{ form.is_internal.id_for_label }}" 
+               id="id_is_internal" 
                class="form-check-input"
                style="cursor: pointer;">
-        <label class="form-check-label" for="{{ form.is_internal.id_for_label }}" style="cursor: pointer;">
+        <label class="form-check-label" for="id_is_internal" style="cursor: pointer;">
             <i class="fas fa-lock" style="color: var(--danger); margin-right: 6px;"></i>
             Только для сотрудников
         </label>
@@ -56,6 +57,7 @@
     {% endif %}
 
     <button type="submit" 
+            id="comment-submit-btn"
             class="btn btn-primary"
             style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%); 
                    border: none; 
@@ -68,30 +70,39 @@
 </form>
 
 <script>
-// Хранилище файлов в памяти (так как HTML form не поддерживает несколько файлов через input[type=file])
+// Хранилище файлов в памяти
 let uploadedFiles = [];
 
 function addAttachment(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
+        
+        // Проверка размера (макс 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Файл слишком большой! Максимум 10MB');
+            input.value = '';
+            return;
+        }
+        
         uploadedFiles.push(file);
         
         // Показать загруженный файл
         const attachmentsList = document.getElementById('attachments-list');
         const fileItem = document.createElement('div');
         fileItem.className = 'alert alert-info d-flex justify-content-between align-items-center';
+        fileItem.style.marginBottom = '8px';
         fileItem.innerHTML = `
             <span>
                 <i class="fas fa-file"></i> ${file.name} (${(file.size / 1024).toFixed(2)} KB)
             </span>
             <button type="button" class="btn btn-sm btn-outline-danger" 
                     onclick="removeAttachment(this, '${file.name}')">
-                <i class="fas fa-trash"></i> Удалить
+                <i class="fas fa-trash"></i>
             </button>
         `;
         attachmentsList.appendChild(fileItem);
         
-        // Очистить input для возможности выбрать еще один файл
+        // Очистить input
         input.value = '';
     }
 }
@@ -101,30 +112,43 @@ function removeAttachment(btn, fileName) {
     uploadedFiles = uploadedFiles.filter(f => f.name !== fileName);
 }
 
-// Перехватить submission формы для добавления файлов
-document.addEventListener('htmx:xhr:progress', function(evt) {
-    if (evt.detail.loaded && evt.detail.total) {
-        console.log('Upload progress:', Math.round((evt.detail.loaded / evt.detail.total) * 100) + '%');
+// Перехватить submit формы для добавления файлов
+document.getElementById('comment-form').addEventListener('submit', function(evt) {
+    const contentField = document.getElementById('id_content');
+    const commentText = contentField.value.trim();
+    
+    // Проверка: должен быть либо комментарий, либо файл
+    if (!commentText && uploadedFiles.length === 0) {
+        evt.preventDefault();
+        contentField.classList.add('is-invalid');
+        contentField.style.borderColor = 'var(--danger)';
+        return false;
+    }
+    
+    // Если только файлы и нет текста - это ОК
+    // Если текст есть - очищаем класс ошибки
+    if (commentText) {
+        contentField.classList.remove('is-invalid');
+        contentField.style.borderColor = '';
     }
 });
 
-// Обработка FormData с файлами
-document.querySelector('form').addEventListener('htmx:configRequest', function(evt) {
+// Обработка FormData с файлами через HTMX
+document.getElementById('comment-form').addEventListener('htmx:configRequest', function(evt) {
     if (uploadedFiles.length > 0) {
         const formData = new FormData();
         
         // Добавить основные поля
-        formData.append('content', document.querySelector('[name="content"]').value);
-        formData.append('is_internal', document.querySelector('[name="is_internal"]').checked ? 'on' : 'off');
+        formData.append('content', document.getElementById('id_content').value);
+        formData.append('is_internal', document.getElementById('id_is_internal').checked ? 'on' : 'off');
         formData.append('csrfmiddlewaretoken', document.querySelector('[name="csrfmiddlewaretoken"]').value);
         
-        // Добавить файлы
-        uploadedFiles.forEach((file, index) => {
-            formData.append(`attachments`, file);
+        // Добавить каждый файл
+        uploadedFiles.forEach((file) => {
+            formData.append('attachments', file);
         });
         
         evt.detail.body = formData;
-        evt.detail.headers['Content-Type'] = undefined; // Пусть браузер установит правильный Content-Type
     }
 });
 </script>

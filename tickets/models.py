@@ -207,7 +207,7 @@ class Comment(models.Model):
     """Комментарий к тикету."""
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='comments', verbose_name='Тикет')
     author = models.ForeignKey(User, on_delete=models.PROTECT, verbose_name='Автор')
-    content = models.TextField(verbose_name='Содержание')
+    content = models.TextField(blank=True, verbose_name='Содержание')
     
     # Р вЂ™РЎР‚Р ВµР СР ВµР Р…Р Р…РЎвЂ№Р Вµ Р СР ВµРЎвЂљР С”Р С‘
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
