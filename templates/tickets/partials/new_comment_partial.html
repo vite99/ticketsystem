@@ -1,0 +1,17 @@
+{% load humanize %}
+<div class="comment-item" style="margin-bottom: 16px; padding: 12px; background: var(--primary-soft); border-radius: 8px; border-left: 4px solid var(--primary);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+        <div>
+            <strong style="color: var(--fg-primary);">{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+            {% if comment.is_internal %}
+            <span class="badge bg-danger" style="margin-left: 8px;">
+                <i class="fas fa-lock"></i> Внутренний
+            </span>
+            {% endif %}
+        </div>
+        <small style="color: var(--fg-muted);">
+            {{ comment.created_at|naturaltime }}
+        </small>
+    </div>
+    <p style="margin: 0; color: var(--fg-primary); line-height: 1.5;">{{ comment.content }}</p>
+</div>

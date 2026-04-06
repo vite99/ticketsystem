@@ -570,7 +570,20 @@ def add_comment(request, ticket_id):
                     })
                     cache.set(cache_key, notifications, timeout=None)
             send_comment_notification(comment)
-            return redirect('ticket_detail', ticket_id=ticket.id)
+            
+            # Проверка: это AJAX запрос от HTMX?
+            if request.headers.get('HX-Request') == 'true':
+                response = render(request, 'tickets/partials/new_comment_partial.html', {'comment': comment})
+                response.status_code = 201  # Created
+                return response
+            else:
+                # Обычный POST - редирект
+                return redirect('ticket_detail', ticket_id=ticket.id)
+        else:
+            # Ошибки валидации для AJAX
+            if request.headers.get('HX-Request') == 'true':
+                return render(request, 'tickets/partials/comment_form_partial.html', 
+                            {'form': form, 'ticket': ticket}, status=400)
     else:
         form = CommentForm()
     

@@ -1,0 +1,48 @@
+<form hx-post="{% url 'add_comment' ticket.id %}" 
+      hx-target="#comments-container" 
+      hx-select="#comments-container > *"
+      hx-swap="innerHTML swap:0.3s"
+      hx-on::after-request="if(event.detail.xhr.status === 201) this.reset()">
+    {% csrf_token %}
+    
+    <div class="form-group mb-3">
+        <label for="{{ form.content.id_for_label }}" class="form-label" style="font-weight: 500; color: var(--fg-primary);">
+            Ваш комментарий
+        </label>
+        <textarea name="content" 
+                  id="{{ form.content.id_for_label }}" 
+                  class="form-control" 
+                  rows="3" 
+                  placeholder="Напишите комментарий..."
+                  style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px; font-family: 'Inter', sans-serif;"
+                  required></textarea>
+        {% if form.content.errors %}
+        <div class="invalid-feedback d-block">{{ form.content.errors }}</div>
+        {% endif %}
+    </div>
+
+    {% if form.is_internal %}
+    <div class="form-check mb-3">
+        <input type="checkbox" 
+               name="is_internal" 
+               id="{{ form.is_internal.id_for_label }}" 
+               class="form-check-input"
+               style="cursor: pointer;">
+        <label class="form-check-label" for="{{ form.is_internal.id_for_label }}" style="cursor: pointer;">
+            <i class="fas fa-lock" style="color: var(--danger); margin-right: 6px;"></i>
+            Только для сотрудников
+        </label>
+    </div>
+    {% endif %}
+
+    <button type="submit" 
+            class="btn btn-primary"
+            style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%); 
+                   border: none; 
+                   font-weight: 500; 
+                   padding: 10px 24px;
+                   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+                   transition: all var(--transition-fast);">
+        <i class="fas fa-paper-plane"></i> Отправить
+    </button>
+</form>
