@@ -220,7 +220,7 @@ class Attachment(models.Model):
     
     file = models.FileField(
         upload_to='tickets/attachments/%Y/%m/',
-        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'])],
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'])],
         verbose_name='Файл'
     )
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='Загружено')

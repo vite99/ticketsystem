@@ -1,6 +1,7 @@
 ﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.views import LoginView, LogoutView
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.http import require_POST
@@ -12,7 +13,7 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.db.utils import OperationalError, ProgrammingError
+from django.db.utils import IntegrityError, OperationalError, ProgrammingError
 from itertools import groupby
 from .models import Ticket, Comment, Status, Priority, Tag, UserProfile, Workstation, TicketHistory, Attachment
 from .forms import (
@@ -22,18 +23,31 @@ from .forms import (
     RegistrationForm,
     NotificationSettingsForm,
     ApprovalProfileEditForm,
+    AdminUserEditForm,
     WorkstationForm,
     TagForm,
 )
 from django.urls import reverse, reverse_lazy
 
 COMPLETED_STATUS_NAMES = ['resolved', 'closed']
+ALLOWED_ATTACHMENT_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'}
 USER_URGENCY_TO_PRIORITY = {
     Ticket.URGENCY_LOW: Priority.LOW,
     Ticket.URGENCY_NORMAL: Priority.MEDIUM,
     Ticket.URGENCY_URGENT: Priority.HIGH,
     Ticket.URGENCY_CRITICAL: Priority.CRITICAL,
 }
+
+
+def _validate_uploaded_attachments(uploaded_files):
+    """Validate uploaded attachments against the project white list."""
+    invalid_files = []
+    for uploaded_file in uploaded_files:
+        filename = (uploaded_file.name or '').strip()
+        extension = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if extension not in ALLOWED_ATTACHMENT_EXTENSIONS:
+            invalid_files.append(filename or 'без имени')
+    return invalid_files
 
 
 class TicketLoginView(LoginView):
@@ -57,9 +71,13 @@ def register_view(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            messages.success(request, 'Регистрация успешна! Пожалуйста, войдите в систему.')
-            return redirect('login')
+            try:
+                user = form.save()
+            except IntegrityError:
+                form.add_error('username', 'Пользователь с таким именем уже существует!')
+            else:
+                messages.success(request, 'Регистрация успешна! Пожалуйста, войдите в систему.')
+                return redirect('login')
     else:
         form = RegistrationForm()
     
@@ -213,7 +231,11 @@ def ticket_list(request):
             # РћС‡РёС‰Р°РµРј СѓРІРµРґРѕРјР»РµРЅРёСЏ
             cache.delete(cache_key)
     
-    tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES)
+    tickets = Ticket.objects.exclude(status__name__in=COMPLETED_STATUS_NAMES).prefetch_related('tags')
+    # Обычные пользователи видят только свои тикеты
+    if not request.user.is_staff:
+        tickets = tickets.filter(Q(creator=request.user) | Q(assigned_to=request.user))
+    
     tickets, list_context = _apply_ticket_filters_and_sorting(tickets, request, is_archive=False)
     tickets_meta = tickets.aggregate(total=Count('id'), latest=Max('updated_at'))
     table_signature = f"{tickets_meta['total']}|{tickets_meta['latest'].isoformat() if tickets_meta['latest'] else 'none'}"
@@ -237,7 +259,7 @@ def ticket_list(request):
 @require_approval
 def ticket_archive(request):
     """РђСЂС…РёРІ Р·Р°РІРµСЂС€РµРЅРЅС‹С… С‚РёРєРµС‚РѕРІ."""
-    tickets = Ticket.objects.filter(status__name__in=COMPLETED_STATUS_NAMES)
+    tickets = Ticket.objects.filter(status__name__in=COMPLETED_STATUS_NAMES).prefetch_related('tags')
     if not request.user.is_staff:
         tickets = tickets.filter(creator=request.user)
 
@@ -452,12 +474,36 @@ def ticket_create(request):
     """РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ С‚РёРєРµС‚Р°"""
     # Р’С‹Р±РёСЂР°РµРј С„РѕСЂРјСѓ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЂРѕР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
     form_class = TicketForm if request.user.is_staff else TicketFormUser
+    profile_workstation = None
+    if hasattr(request.user, 'profile'):
+        profile_workstation = request.user.profile.workstation
     
     if request.method == 'POST':
         form = form_class(request.POST, request.FILES)
         if form.is_valid():
+            uploaded_files = request.FILES.getlist('attachments')
+            invalid_files = _validate_uploaded_attachments(uploaded_files)
+            if invalid_files:
+                messages.error(
+                    request,
+                    'Недопустимые вложения: ' + ', '.join(invalid_files) +
+                    '. Разрешены только JPG, JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.'
+                )
+                return render(
+                    request,
+                    'tickets/ticket_form.html',
+                    {
+                        'form': form,
+                        'title': 'Создать тикет',
+                        'profile_workstation': profile_workstation,
+                    },
+                )
+
             ticket = form.save(commit=False)
             ticket.creator = request.user
+
+            if not request.user.is_staff and not ticket.workstation and profile_workstation:
+                ticket.workstation = profile_workstation
             
             # Р”Р»СЏ РѕР±С‹С‡РЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµРј СЃС‚Р°С‚СѓСЃ "РћС‚РєСЂС‹С‚"
             if not request.user.is_staff:
@@ -472,7 +518,7 @@ def ticket_create(request):
             ticket.save()
             if hasattr(form, 'save_m2m'):
                 form.save_m2m()  # РЎРѕС…СЂР°РЅРёС‚СЊ M2M РѕС‚РЅРѕС€РµРЅРёСЏ (С‚РµРіРё) РµСЃР»Рё РѕРЅРё РµСЃС‚СЊ
-            for uploaded_file in request.FILES.getlist('attachments'):
+            for uploaded_file in uploaded_files:
                 Attachment.objects.create(
                     ticket=ticket,
                     file=uploaded_file,
@@ -491,9 +537,20 @@ def ticket_create(request):
             messages.success(request, f'✅ Тикет #{ticket.id} успешно создан!')
             return redirect('ticket_detail', ticket_id=ticket.id)
     else:
-        form = form_class()
+        initial = {}
+        if not request.user.is_staff and profile_workstation:
+            initial['workstation'] = profile_workstation
+        form = form_class(initial=initial)
     
-    return render(request, 'tickets/ticket_form.html', {'form': form, 'title': 'Создать тикет'})
+    return render(
+        request,
+        'tickets/ticket_form.html',
+        {
+            'form': form,
+            'title': 'Создать тикет',
+            'profile_workstation': profile_workstation,
+        },
+    )
 
 
 @login_required(login_url='login')
@@ -520,6 +577,24 @@ def ticket_edit(request, ticket_id):
 
         form = form_class(request.POST, request.FILES, instance=ticket)
         if form.is_valid():
+            uploaded_files = request.FILES.getlist('attachments')
+            invalid_files = _validate_uploaded_attachments(uploaded_files)
+            if invalid_files:
+                messages.error(
+                    request,
+                    'Недопустимые вложения: ' + ', '.join(invalid_files) +
+                    '. Разрешены только JPG, JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.'
+                )
+                return render(
+                    request,
+                    'tickets/ticket_edit.html',
+                    {
+                        'form': form,
+                        'ticket': ticket,
+                        'title': 'Редактировать тикет',
+                        'existing_attachments': ticket.attachments.all(),
+                    },
+                )
             ticket = form.save(commit=False)
             if not request.user.is_staff:
                 priority_name = USER_URGENCY_TO_PRIORITY.get(ticket.user_urgency, Priority.MEDIUM)
@@ -537,7 +612,7 @@ def ticket_edit(request, ticket_id):
                 for attachment in attachments_to_delete:
                     attachment.file.delete(save=False)
                     attachment.delete()
-            for uploaded_file in request.FILES.getlist('attachments'):
+            for uploaded_file in uploaded_files:
                 Attachment.objects.create(
                     ticket=ticket,
                     file=uploaded_file,
@@ -772,6 +847,14 @@ def add_comment(request, ticket_id):
         content_text = request.POST.get('content', '').strip()
         is_internal = request.POST.get('is_internal') == 'on'
         uploaded_files = request.FILES.getlist('attachments')
+
+        invalid_files = _validate_uploaded_attachments(uploaded_files)
+        if invalid_files:
+            from django.http import JsonResponse
+            return JsonResponse({
+                'error': 'Недопустимые вложения: ' + ', '.join(invalid_files) +
+                         '. Разрешены только JPG, JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.'
+            }, status=400)
         
         # Валидация: должен быть либо текст, либо файлы
         if not content_text and not uploaded_files:
@@ -1046,9 +1129,9 @@ def user_approval_list(request):
         if not hasattr(user, 'profile'):
             UserProfile.objects.create(user=user)
     
-    # РўРµРїРµСЂСЊ С„РёР»СЊС‚СЂСѓРµРј РїРѕ СЃС‚Р°С‚СѓСЃСѓ РѕРґРѕР±СЂРµРЅРёСЏ (РёСЃРєР»СЋС‡Р°СЏ С€С‚Р°С‚)
-    pending_users = User.objects.filter(profile__is_approved=False).exclude(is_staff=True)
-    approved_users = User.objects.filter(profile__is_approved=True).exclude(is_staff=True)
+    # Теперь фильтруем по статусу одобрения (исключая штат и неактивных)
+    pending_users = User.objects.filter(profile__is_approved=False, is_active=True).exclude(is_staff=True)
+    approved_users = User.objects.filter(profile__is_approved=True, is_active=True).exclude(is_staff=True)
     
     context = {
         'pending_users': pending_users,
@@ -1096,6 +1179,41 @@ def approve_user(request, user_id):
 
 @login_required(login_url='login')
 @user_passes_test(is_admin)
+def edit_user_admin(request, user_id):
+    """Редактирование пользователя администратором."""
+    user = get_object_or_404(User, id=user_id)
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    rooms = Workstation.objects.values_list('room', flat=True).distinct().order_by('room')
+
+    if request.method == 'POST':
+        user_form = AdminUserEditForm(request.POST, instance=user)
+        profile_form = ApprovalProfileEditForm(request.POST, instance=profile)
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            updated_profile = profile_form.save(commit=False)
+            workstation_id = request.POST.get('workstation_id')
+            if workstation_id:
+                updated_profile.workstation = Workstation.objects.filter(id=workstation_id).first()
+            else:
+                updated_profile.workstation = None
+            updated_profile.save()
+            messages.success(request, f'Данные пользователя {user.username} обновлены.')
+            return redirect('user_approval_list')
+    else:
+        user_form = AdminUserEditForm(instance=user)
+        profile_form = ApprovalProfileEditForm(instance=profile)
+
+    context = {
+        'target_user': user,
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'rooms': rooms,
+    }
+    return render(request, 'tickets/edit_user_admin.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
 def workstations_by_room(request):
     from django.http import JsonResponse
 
@@ -1109,18 +1227,28 @@ def workstations_by_room(request):
 
 
 @login_required(login_url='login')
-@user_passes_test(is_admin)
 def reject_user(request, user_id):
-    """РћС‚РєР»РѕРЅРёС‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ"""
+    """Отклонить пользователя"""
+    # Проверка прав администратора
+    if not is_admin(request.user):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'message': 'У вас нет прав.'}, status=403)
+        messages.error(request, 'У вас нет прав для выполнения этого действия.')
+        return redirect('user_approval_list')
+    
     user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        user.is_active = False
-        user.save()
-        messages.success(request, f'Пользователь {user.username} деактивирован.')
-        return redirect('user_approval_list')
+        action = request.POST.get('action')
+        if action == 'reject':
+            user.is_active = False
+            user.save()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': f'Пользователь {user.username} деактивирован.'})
+            messages.success(request, f'Пользователь {user.username} деактивирован.')
+            return redirect('user_approval_list')
     
-    context = {'user': user}
+    context = {'user': user, 'title': f'Отклонить пользователя {user.username}'}
     return render(request, 'tickets/reject_user.html', context)
 
 
@@ -1484,7 +1612,7 @@ def ticket_list_rows_partial(request):
     # Оптимизация запросов
     tickets = tickets.select_related(
         'status', 'priority', 'creator', 'assigned_to', 'workstation'
-    ).order_by(sort)
+    ).prefetch_related('tags').order_by(sort)
     
     # Пагинация если требуется
     page_number = request.GET.get('page', 1)

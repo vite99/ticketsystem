@@ -39,6 +39,7 @@ urlpatterns = [
     # Управление одобрением пользователей (только для администраторов)
     path('users/approval/', views.user_approval_list, name='user_approval_list'),
     path('users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
+    path('users/<int:user_id>/edit/', views.edit_user_admin, name='edit_user_admin'),
     path('users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
     path('users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
     path('users/<int:user_id>/', views.user_detail_admin, name='user_detail_admin'),

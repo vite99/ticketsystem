@@ -1,4 +1,4 @@
-<form id="comment-form" enctype="multipart/form-data" novalidate data-ticket-id="{{ ticket.id }}">
+﻿<form id="comment-form" enctype="multipart/form-data" novalidate data-ticket-id="{{ ticket.id }}">
     {% csrf_token %}
     
     <div class="form-group mb-3">
@@ -25,11 +25,12 @@
                id="file-input" 
                name="attachments"
                class="form-control"
-               accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+               multiple
+               accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                style="border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px;"
                onchange="addAttachment(this)">
         <small style="color: var(--fg-muted); display: block; margin-top: 6px;">
-            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, XLS, TXT, ZIP (макс. 10MB)
+            <i class="fas fa-info-circle"></i> JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT, ZIP (макс. 10MB)
         </small>
     </div>
 
@@ -78,25 +79,32 @@
 
 <script>
 let uploadedFilesData = new DataTransfer();
+const allowedAttachmentExtensions = ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'];
+
+function isAllowedAttachment(fileName) {
+    const parts = (fileName || '').toLowerCase().split('.');
+    const extension = parts.length > 1 ? parts.pop() : '';
+    return allowedAttachmentExtensions.includes(extension);
+}
 
 function addAttachment(input) {
-    if (input.files && input.files.length > 0) {
-        const file = input.files[0];
-        
-        // Проверка размера (макс 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('Файл слишком большой! Максимум 10MB');
-            input.value = '';
+    if (!input.files || !input.files.length) {
+        return;
+    }
+
+    Array.from(input.files).forEach(file => {
+        if (!isAllowedAttachment(file.name)) {
+            alert('Недопустимый тип файла: ' + file.name + '. Разрешены JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.');
             return;
         }
-        
-        // Добавить в DataTransfer
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Файл слишком большой: ' + file.name + '. Максимум 10MB');
+            return;
+        }
+
         uploadedFilesData.items.add(file);
-        
-        // Обновить input files
-        input.files = uploadedFilesData.files;
-        
-        // Показать в списке
+
         const attachmentsList = document.getElementById('attachments-list');
         const fileItem = document.createElement('div');
         fileItem.className = 'd-flex justify-content-between align-items-center p-3 bg-light rounded-2 mb-2';
@@ -107,22 +115,20 @@ function addAttachment(input) {
                 <strong>${file.name}</strong>
                 <small class="d-block text-muted">${(file.size / 1024).toFixed(2)} KB</small>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger" 
-                    onclick="removeAttachment(this, '${file.name}')">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAttachment(this, '${file.name}')">
                 <i class="fas fa-trash"></i>
             </button>
         `;
         attachmentsList.appendChild(fileItem);
-        
-        // Очистить input
-        input.value = '';
-    }
+    });
+
+    input.files = uploadedFilesData.files;
+    input.value = '';
 }
 
 function removeAttachment(btn, fileName) {
     btn.closest('div').remove();
-    
-    // Удалить из DataTransfer
+
     const newDataTransfer = new DataTransfer();
     Array.from(uploadedFilesData.files).forEach(file => {
         if (file.name !== fileName) {
@@ -133,54 +139,47 @@ function removeAttachment(btn, fileName) {
     document.getElementById('file-input').files = uploadedFilesData.files;
 }
 
-// Обработка отправки формы
 document.getElementById('comment-form').addEventListener('submit', function(evt) {
     evt.preventDefault();
-    
+
     const form = this;
     const contentField = document.getElementById('id_content');
     const commentText = contentField.value.trim();
     const hasFiles = uploadedFilesData.files.length > 0;
-    
-    // Валидация
+
     if (!commentText && !hasFiles) {
         contentField.classList.add('is-invalid');
         contentField.style.borderColor = '#dc2626';
         contentField.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
         return false;
     }
-    
+
     contentField.classList.remove('is-invalid');
     contentField.style.borderColor = '';
     contentField.style.boxShadow = '';
-    
-    // Создать FormData
+
     const formData = new FormData();
     formData.append('content', commentText);
     const isInternalCheckbox = document.getElementById('id_is_internal');
     formData.append('is_internal', isInternalCheckbox?.checked ? 'on' : 'off');
     formData.append('csrfmiddlewaretoken', document.querySelector('[name="csrfmiddlewaretoken"]').value);
-    
-    // Добавить файлы
+
     Array.from(uploadedFilesData.files).forEach(file => {
         formData.append('attachments', file);
     });
-    
-    // Показать прогресс бар
+
     const progressDiv = document.getElementById('upload-progress');
     const progressBar = document.getElementById('progress-bar');
     const progressPercent = document.getElementById('progress-percent');
     const submitBtn = document.getElementById('comment-submit-btn');
-    
+
     progressDiv.style.display = 'block';
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.6';
     submitBtn.style.cursor = 'not-allowed';
-    
-    // Отправить через fetch с отслеживанием прогресса
+
     const xhr = new XMLHttpRequest();
-    
-    // Отслеживание прогресса загрузки
+
     xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
@@ -188,8 +187,7 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
             progressPercent.textContent = percentComplete + '%';
         }
     });
-    
-    // Обработка завершения
+
     xhr.addEventListener('load', () => {
         if (xhr.status === 201) {
             const commentsContainer = document.getElementById('comments-container');
@@ -217,7 +215,6 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
                 scrollToBottom();
             }
         } else if (xhr.status === 400) {
-            // Ошибка валидации
             try {
                 const error = JSON.parse(xhr.responseText);
                 alert('Ошибка: ' + error.error);
@@ -227,8 +224,7 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
         } else {
             alert('Ошибка при отправке комментария: ' + xhr.status);
         }
-        
-        // Скрыть прогресс бар
+
         progressDiv.style.display = 'none';
         progressBar.style.width = '0%';
         progressPercent.textContent = '0%';
@@ -236,8 +232,7 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
         submitBtn.style.opacity = '1';
         submitBtn.style.cursor = 'pointer';
     });
-    
-    // Обработка ошибок
+
     xhr.addEventListener('error', () => {
         alert('Ошибка сети при загрузке');
         progressDiv.style.display = 'none';
@@ -245,9 +240,9 @@ document.getElementById('comment-form').addEventListener('submit', function(evt)
         submitBtn.style.opacity = '1';
         submitBtn.style.cursor = 'pointer';
     });
-    
+
     const ticketId = form.dataset.ticketId;
-    xhr.open('POST', `/${ticketId}/comment/`);
+    xhr.open('POST', '/' + ticketId + '/comment/');
     xhr.send(formData);
 });
 </script>

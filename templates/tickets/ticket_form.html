@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ title }} - Ticket System{% endblock %}
 
@@ -447,7 +447,11 @@
                             <div class="field-group">
                                 <label for="{{ form.workstation.id_for_label }}">{{ form.workstation.label }}</label>
                                 {{ form.workstation }}
+                                {% if profile_workstation and not user.is_staff %}
+                                <div class="field-help">Рабочее место подставлено из вашего профиля. При необходимости его можно изменить.</div>
+                                {% else %}
                                 <div class="field-help">Укажите рабочее место или компьютер, чтобы тикет было легче обработать.</div>
+                                {% endif %}
                                 {% if form.workstation.errors %}
                                 <div class="field-error">{{ form.workstation.errors|striptags }}</div>
                                 {% endif %}
@@ -466,7 +470,7 @@
                         <div class="field-group">
                             <label>Файлы</label>
                             <div class="upload-box" :class="{ 'dragover': dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="handleDrop($event)">
-                                <input id="id_attachments" name="attachments" type="file" multiple class="d-none" x-ref="fileInput" @change="syncFiles($event)">
+                                <input id="id_attachments" name="attachments" type="file" multiple class="d-none" x-ref="fileInput" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" @change="syncFiles($event)">
                                 <div class="upload-icon">
                                     <i data-lucide="upload" class="h-5 w-5"></i>
                                 </div>
@@ -556,7 +560,7 @@
                             Отмена
                         </a>
                         <button type="submit" class="btn-primary-solid">
-                            {% if ticket %}Сохранить изменения{% else %}{{ title }}{% endif %}
+                            {% if ticket %}РЎРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ{% else %}{{ title }}{% endif %}
                         </button>
                     </div>
                 </form>
@@ -575,28 +579,29 @@
             dragging: false,
             files: [],
             removedAttachmentIds: [],
+            allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'],
             selectedTemplate: '{{ form.template_topic.value|default_if_none:""|escapejs }}',
             selectedUrgency: '{{ form.user_urgency.value|default_if_none:"normal"|escapejs }}',
             templates: {
                 no_internet: {
-                    title: 'Нет интернета на рабочем месте',
-                    description: 'На рабочем месте отсутствует доступ к интернету. Когда началась проблема, что уже проверено, есть ли проблема у соседних ПК.'
+                    title: 'РќРµС‚ РёРЅС‚РµСЂРЅРµС‚Р° РЅР° СЂР°Р±РѕС‡РµРј РјРµСЃС‚Рµ',
+                    description: 'РќР° СЂР°Р±РѕС‡РµРј РјРµСЃС‚Рµ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РґРѕСЃС‚СѓРї Рє РёРЅС‚РµСЂРЅРµС‚Сѓ. РљРѕРіРґР° РЅР°С‡Р°Р»Р°СЃСЊ РїСЂРѕР±Р»РµРјР°, С‡С‚Рѕ СѓР¶Рµ РїСЂРѕРІРµСЂРµРЅРѕ, РµСЃС‚СЊ Р»Рё РїСЂРѕР±Р»РµРјР° Сѓ СЃРѕСЃРµРґРЅРёС… РџРљ.'
                 },
                 printer_issue: {
-                    title: 'Проблема с принтером',
-                    description: 'Принтер не печатает или возникает ошибка печати. Укажите кабинет, модель устройства и текст ошибки.'
+                    title: 'РџСЂРѕР±Р»РµРјР° СЃ РїСЂРёРЅС‚РµСЂРѕРј',
+                    description: 'РџСЂРёРЅС‚РµСЂ РЅРµ РїРµС‡Р°С‚Р°РµС‚ РёР»Рё РІРѕР·РЅРёРєР°РµС‚ РѕС€РёР±РєР° РїРµС‡Р°С‚Рё. РЈРєР°Р¶РёС‚Рµ РєР°Р±РёРЅРµС‚, РјРѕРґРµР»СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР° Рё С‚РµРєСЃС‚ РѕС€РёР±РєРё.'
                 },
                 account_access: {
-                    title: 'Проблема с доступом к аккаунту',
-                    description: 'Не удается войти в учетную запись. Укажите логин, где возникает ошибка и что пишет система.'
+                    title: 'РџСЂРѕР±Р»РµРјР° СЃ РґРѕСЃС‚СѓРїРѕРј Рє Р°РєРєР°СѓРЅС‚Сѓ',
+                    description: 'РќРµ СѓРґР°РµС‚СЃСЏ РІРѕР№С‚Рё РІ СѓС‡РµС‚РЅСѓСЋ Р·Р°РїРёСЃСЊ. РЈРєР°Р¶РёС‚Рµ Р»РѕРіРёРЅ, РіРґРµ РІРѕР·РЅРёРєР°РµС‚ РѕС€РёР±РєР° Рё С‡С‚Рѕ РїРёС€РµС‚ СЃРёСЃС‚РµРјР°.'
                 },
                 software_install: {
-                    title: 'Запрос на установку программы',
-                    description: 'Нужно установить программу на рабочий компьютер. Укажите название, версию и цель использования.'
+                    title: 'Р—Р°РїСЂРѕСЃ РЅР° СѓСЃС‚Р°РЅРѕРІРєСѓ РїСЂРѕРіСЂР°РјРјС‹',
+                    description: 'РќСѓР¶РЅРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РЅР° СЂР°Р±РѕС‡РёР№ РєРѕРјРїСЊСЋС‚РµСЂ. РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ, РІРµСЂСЃРёСЋ Рё С†РµР»СЊ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ.'
                 },
                 pc_slow: {
-                    title: 'Компьютер работает медленно',
-                    description: 'Компьютер заметно тормозит. Укажите, какие программы открыты и в какой момент проблема проявляется.'
+                    title: 'РљРѕРјРїСЊСЋС‚РµСЂ СЂР°Р±РѕС‚Р°РµС‚ РјРµРґР»РµРЅРЅРѕ',
+                    description: 'РљРѕРјРїСЊСЋС‚РµСЂ Р·Р°РјРµС‚РЅРѕ С‚РѕСЂРјРѕР·РёС‚. РЈРєР°Р¶РёС‚Рµ, РєР°РєРёРµ РїСЂРѕРіСЂР°РјРјС‹ РѕС‚РєСЂС‹С‚С‹ Рё РІ РєР°РєРѕР№ РјРѕРјРµРЅС‚ РїСЂРѕР±Р»РµРјР° РїСЂРѕСЏРІР»СЏРµС‚СЃСЏ.'
                 }
             },
             init() {
@@ -622,18 +627,31 @@
                 }
             },
             syncFiles(event) {
-                this.files = Array.from(event.target.files || []);
+                const selectedFiles = Array.from(event.target.files || []);
+                const validFiles = selectedFiles.filter(file => this.isAllowedFile(file));
+                const dataTransfer = new DataTransfer();
+                validFiles.forEach(file => dataTransfer.items.add(file));
+                this.$refs.fileInput.files = dataTransfer.files;
+                this.files = validFiles;
                 this.dragging = false;
                 this.refreshIcons();
             },
             handleDrop(event) {
-                const droppedFiles = Array.from(event.dataTransfer.files || []);
+                const droppedFiles = Array.from(event.dataTransfer.files || []).filter(file => this.isAllowedFile(file));
                 const dataTransfer = new DataTransfer();
                 droppedFiles.forEach(file => dataTransfer.items.add(file));
                 this.$refs.fileInput.files = dataTransfer.files;
                 this.files = droppedFiles;
                 this.dragging = false;
                 this.refreshIcons();
+            },
+            isAllowedFile(file) {
+                const extension = (file.name || '').split('.').pop().toLowerCase();
+                const isAllowed = this.allowedExtensions.includes(extension);
+                if (!isAllowed) {
+                    alert(`Недопустимый тип файла: ${file.name}. Разрешены JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.`);
+                }
+                return isAllowed;
             },
             toggleAttachmentDeletion(attachmentId) {
                 if (this.removedAttachmentIds.includes(attachmentId)) {

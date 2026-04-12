@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}РЎРїРёСЃРѕРє С‚РёРєРµС‚РѕРІ - Ticket System{% endblock %}
+{% block title %}Список тикетов - Ticket System{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -274,7 +274,21 @@
                             <strong style="color: var(--primary);">#{{ ticket.id }}</strong>
                         </td>
                         <td>
-                            <span style="font-weight: 500;">{{ ticket.title }}</span>
+                            <div style="font-weight: 500;">{{ ticket.title }}</div>
+                            {% if ticket.tags.all %}
+                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                {% for tag in ticket.tags.all|slice:":2" %}
+                                <span class="badge rounded-pill" style="background-color: {{ tag.color }}; font-size: 0.72rem;">
+                                    {{ tag.name }}
+                                </span>
+                                {% endfor %}
+                                {% if ticket.tags.count > 2 %}
+                                <span class="badge rounded-pill bg-light text-dark border" style="font-size: 0.72rem;">
+                                    +{{ ticket.tags.count|add:"-2" }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="badge priority-{{ ticket.priority.name }}">

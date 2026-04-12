@@ -233,6 +233,26 @@ class ApprovalProfileEditForm(forms.ModelForm):
         }
 
 
+class AdminUserEditForm(forms.ModelForm):
+    """Редактирование основных данных пользователя администратором."""
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Логин'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Имя'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Фамилия'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+        }
+        labels = {
+            'username': 'Имя пользователя',
+            'first_name': 'Имя',
+            'last_name': 'Фамилия',
+            'email': 'Email',
+        }
+
+
 class NotificationSettingsForm(forms.ModelForm):
     """Настройки уведомлений пользователя."""
 
@@ -331,19 +351,21 @@ class RegistrationForm(forms.ModelForm):
         return password2
 
     def clean_username(self):
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
+        username = (self.cleaned_data.get('username') or '').strip()
+        if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError('Пользователь с таким именем уже существует!')
         return username
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
+        email = (self.cleaned_data.get('email') or '').strip()
+        if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('Пользователь с таким email уже зарегистрирован!')
         return email
 
     def save(self, commit=True):
         user = super().save(commit=False)
+        user.username = (self.cleaned_data.get('username') or '').strip()
+        user.email = (self.cleaned_data.get('email') or '').strip()
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()

@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}Управление одобрением пользователей{% endblock %}
+{% block title %}Управление пользователями{% endblock %}
 
 {% block content %}
 <style>
@@ -96,17 +96,16 @@
     <div class="d-flex align-items-center justify-content-between mb-5">
         <div>
             <h1 class="mb-2">👥 Управление пользователями</h1>
-            <p class="text-muted mb-0">Одобрение и управление доступом пользователей</p>
+            <p class="text-muted mb-0">Одобрение, редактирование и управление доступом пользователей</p>
         </div>
     </div>
 
-    <!-- Ожидающие одобрения -->
     <div class="section-header">
         <i class="fas fa-hourglass-half" style="color: #ffc107; font-size: 24px;"></i>
         <h2>Ожидают одобрения</h2>
         <span class="badge-count">{{ pending_users.count }}</span>
     </div>
-    
+
     {% if pending_users %}
         <div class="row">
             {% for user in pending_users %}
@@ -127,9 +126,16 @@
                             <a href="{% url 'approve_user' user.id %}" class="btn btn-sm btn-success btn-action" title="Одобрить">
                                 <i class="fas fa-check"></i> Одобрить
                             </a>
-                            <a href="{% url 'reject_user' user.id %}" class="btn btn-sm btn-danger btn-action" title="Отклонить">
-                                <i class="fas fa-times"></i> Отклонить
+                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-sm btn-primary btn-action" title="Редактировать">
+                                <i class="fas fa-pen"></i> Редактировать
                             </a>
+                            <form class="reject-form" method="post" action="{% url 'reject_user' user.id %}" style="display:inline;" data-user-id="{{ user.id }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-sm btn-danger reject-btn" title="Отклонить" onclick="return confirm('Вы уверены? Пользователь больше не сможет входить в систему.');">
+                                    <i class="fas fa-times"></i> Отклонить
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -140,19 +146,18 @@
         <div class="card user-card">
             <div class="card-body empty-state">
                 <i class="fas fa-check-circle"></i>
-                <h5>Все одобрено!</h5>
+                <h5>Все одобрено</h5>
                 <p>Нет пользователей, ожидающих одобрения</p>
             </div>
         </div>
     {% endif %}
 
-    <!-- Одобренные пользователи -->
     <div class="section-header">
         <i class="fas fa-check-circle" style="color: #28a745; font-size: 24px;"></i>
         <h2>Одобренные пользователи</h2>
         <span class="badge-count">{{ approved_users.count }}</span>
     </div>
-    
+
     {% if approved_users %}
         <div class="row">
             {% for user in approved_users %}
@@ -170,11 +175,17 @@
                                 <small class="text-success"><i class="fas fa-calendar-check"></i> Одобрен: {{ user.profile.approved_at|date:"d.m.Y H:i" }}</small><br>
                                 {% endif %}
                                 {% if user.profile.approved_by %}
-                                <small class="text-info"><i class="fas fa-user-check"></i> Одобрил: {{ user.profile.approved_by.get_full_name }}</small>
+                                <small class="text-info"><i class="fas fa-user-check"></i> Одобрил: {{ user.profile.approved_by.get_full_name|default:user.profile.approved_by.username }}</small>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="action-buttons mt-3 pt-3 border-top">
+                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-sm btn-primary btn-action" title="Редактировать пользователя">
+                                <i class="fas fa-pen"></i> Редактировать
+                            </a>
+                            <a href="{% url 'user_detail_admin' user.id %}" class="btn btn-sm btn-outline-secondary btn-action" title="Открыть профиль">
+                                <i class="fas fa-user"></i> Профиль
+                            </a>
                             <a href="{% url 'revoke_approval' user.id %}" class="btn btn-sm btn-warning btn-action" title="Отозвать одобрение">
                                 <i class="fas fa-undo"></i> Отозвать
                             </a>
@@ -194,4 +205,64 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.reject-form');
+    console.log('[DEBUG] Found reject forms:', forms.length);
+    
+    forms.forEach((form, index) => {
+        console.log('[DEBUG] Form', index, '- action:', form.action);
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('[DEBUG] Form submitted');
+            
+            const formData = new FormData(form);
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = form.getAttribute('action');
+            
+            console.log('[DEBUG] Sending POST to:', url);
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                console.log('[DEBUG] Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('[DEBUG] Response data:', data);
+                if (data.success) {
+                    // Найти и удалить карточку пользователя
+                    const userCard = form.closest('.col-lg-6');
+                    if (userCard) {
+                        userCard.style.opacity = '0.5';
+                        userCard.style.pointerEvents = 'none';
+                        setTimeout(() => {
+                            userCard.remove();
+                            // Показать уведомление
+                            if (window.showNotification) {
+                                window.showNotification(data.message, 'success');
+                            } else {
+                                alert(data.message);
+                            }
+                        }, 300);
+                    }
+                } else {
+                    alert(data.message || 'Произошла ошибка');
+                }
+            })
+            .catch(error => {
+                console.error('[DEBUG] Error:', error);
+                alert('Ошибка при выполнении запроса: ' + error.message);
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

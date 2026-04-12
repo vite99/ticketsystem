@@ -36,6 +36,7 @@
                     
                     <form method="post">
                         {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
                         <div class="form-group">
                             <label for="reason">Причина отклонения (опционально):</label>
                             <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Укажите причину отклонения..."></textarea>

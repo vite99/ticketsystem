@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load custom_filters %}
 
 {% block title %}{{ ticket.title }} - Ticket System{% endblock %}
@@ -531,7 +531,7 @@
             </div>
             {% endif %}
 
-            {% if ticket.tags.exists %}
+            {% if request.user.is_staff and ticket.tags.exists %}
             <div class="mb-4">
                 <h6 style="margin-bottom: 12px;">
                     <i class="fas fa-tags"></i> Теги
@@ -606,9 +606,9 @@
                                                                         <i class="fas fa-file-word text-blue-700" style="font-size: 16px;"></i>
                                                                     {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-excel text-green-700" style="font-size: 16px;"></i>
-                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower or 'gif' in attachment.file.name|lower %}
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
                                                                         <i class="fas fa-image text-purple-700" style="font-size: 16px;"></i>
-                                                                    {% elif 'zip' in attachment.file.name|lower or 'rar' in attachment.file.name|lower %}
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-archive text-orange-700" style="font-size: 16px;"></i>
                                                                     {% else %}
                                                                         <i class="fas fa-file text-amber-700" style="font-size: 16px;"></i>
@@ -616,7 +616,7 @@
                                                                 </div>
                                                                 <div class="flex-1 min-w-0">
                                                                     <p class="text-xs font-medium text-amber-900 truncate group-hover:text-amber-950">
-                                                                        {{ attachment.file.name|truncatewords:8 }}
+                                                                        {{ attachment.file|filename }}
                                                                     </p>
                                                                     <p class="text-xs text-amber-700/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
                                                                 </div>
@@ -654,9 +654,9 @@
                                                                         <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
                                                                     {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
-                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower or 'gif' in attachment.file.name|lower %}
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
                                                                         <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
-                                                                    {% elif 'zip' in attachment.file.name|lower or 'rar' in attachment.file.name|lower %}
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
                                                                     {% else %}
                                                                         <i class="fas fa-file text-blue-600" style="font-size: 16px;"></i>
@@ -702,9 +702,9 @@
                                                                         <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
                                                                     {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
-                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower or 'gif' in attachment.file.name|lower %}
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
                                                                         <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
-                                                                    {% elif 'zip' in attachment.file.name|lower or 'rar' in attachment.file.name|lower %}
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
                                                                         <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
                                                                     {% else %}
                                                                         <i class="fas fa-file text-slate-600" style="font-size: 16px;"></i>
@@ -712,7 +712,7 @@
                                                                 </div>
                                                                 <div class="flex-1 min-w-0">
                                                                     <p class="text-xs font-medium text-slate-900 truncate group-hover:text-slate-950">
-                                                                        {{ attachment.file.name|truncatewords:8 }}
+                                                                        {{ attachment.file|filename }}
                                                                     </p>
                                                                     <p class="text-xs text-slate-600/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
                                                                 </div>
@@ -767,7 +767,7 @@
                     <div class="attachment-item">
                         <div>
                             <a href="{{ attachment.file.url }}" target="_blank">
-                                <i class="fas fa-file"></i> {{ attachment.file.name|slice:"33:" }}
+                                <i class="fas fa-file"></i> {{ attachment.file|filename }}
                             </a>
                             {% if attachment.description %}
                             <p class="text-muted small mb-0">{{ attachment.description }}</p>
@@ -837,7 +837,7 @@
                     </table>
                 </div>
             </div>
-
+            {% if request.user.is_staff %}
             <div class="card shadow-sm mb-3">
                 <div class="card-header fw-bold">Теги</div>
                 <div class="card-body">
@@ -890,6 +890,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="card shadow-sm mb-3">
                 <div class="card-header fw-bold">История изменений</div>
@@ -1157,3 +1158,5 @@
     });
 </script>
 {% endblock %}
+
+
