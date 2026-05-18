@@ -12,6 +12,7 @@ urlpatterns = [
     path('archive/', views.ticket_archive, name='ticket_archive'),
     path('create/', views.ticket_create, name='ticket_create'),
     path('<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
+    path('<int:ticket_id>/pdf/', views.ticket_pdf_view, name='ticket_pdf_view'),
     path('<int:ticket_id>/edit/', views.ticket_edit, name='ticket_edit'),
     path('<int:ticket_id>/change-status/', views.change_ticket_status, name='change_ticket_status'),
     path('<int:ticket_id>/mark-unresolved/', views.mark_ticket_unresolved, name='mark_ticket_unresolved'),
@@ -35,6 +36,7 @@ urlpatterns = [
     path('dashboard/', views.my_dashboard, name='dashboard'),
     path('statistics/', views.ticket_statistics, name='ticket_statistics'),
     path('settings/notifications/', views.notification_settings, name='notification_settings'),
+    path('settings/initial-setup/', views.initial_setup, name='initial_setup'),
     
     # Управление одобрением пользователей (только для администраторов)
     path('users/approval/', views.user_approval_list, name='user_approval_list'),

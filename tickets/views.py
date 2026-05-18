@@ -37,6 +37,30 @@ USER_URGENCY_TO_PRIORITY = {
     Ticket.URGENCY_URGENT: Priority.HIGH,
     Ticket.URGENCY_CRITICAL: Priority.CRITICAL,
 }
+DEFAULT_PRIORITY_DATA = [
+    (Priority.LOW, '#06b6d4'),
+    (Priority.MEDIUM, '#fbbf24'),
+    (Priority.HIGH, '#f97316'),
+    (Priority.CRITICAL, '#ef4444'),
+]
+DEFAULT_STATUS_DATA = [
+    (Status.OPEN, '#2563eb', False),
+    (Status.IN_PROGRESS, '#3b82f6', False),
+    (Status.WAITING, '#f59e0b', False),
+    (Status.RESOLVED, '#22c55e', False),
+    (Status.CLOSED, '#64748b', True),
+    (Status.REOPENED, '#ef4444', False),
+]
+DEFAULT_TAG_DATA = [
+    ('Сеть', 'Проблемы с сетью, интернетом или подключением.', '#3b82f6'),
+    ('Принтер', 'Печать, сканирование, картриджи и очереди печати.', '#10b981'),
+    ('ПО', 'Установка, обновление или сбой программ.', '#8b5cf6'),
+    ('Аккаунт', 'Учетные записи, вход, блокировки и профили.', '#f59e0b'),
+    ('Доступ', 'Права доступа к системам, папкам и сервисам.', '#ef4444'),
+    ('Компьютер', 'Общие неисправности ПК и производительность.', '#06b6d4'),
+    ('Почта', 'Электронная почта и почтовые клиенты.', '#6366f1'),
+    ('Оборудование', 'Мониторы, периферия, кабели и прочее оборудование.', '#84cc16'),
+]
 
 
 def _validate_uploaded_attachments(uploaded_files):
@@ -48,6 +72,39 @@ def _validate_uploaded_attachments(uploaded_files):
         if extension not in ALLOWED_ATTACHMENT_EXTENSIONS:
             invalid_files.append(filename or 'без имени')
     return invalid_files
+
+
+def _create_default_priorities():
+    created_count = 0
+    for name, color in DEFAULT_PRIORITY_DATA:
+        _, created = Priority.objects.get_or_create(name=name, defaults={'color': color})
+        if created:
+            created_count += 1
+    return created_count
+
+
+def _create_default_statuses():
+    created_count = 0
+    for name, color, is_final in DEFAULT_STATUS_DATA:
+        _, created = Status.objects.get_or_create(
+            name=name,
+            defaults={'color': color, 'is_final': is_final},
+        )
+        if created:
+            created_count += 1
+    return created_count
+
+
+def _create_default_tags():
+    created_count = 0
+    for name, description, color in DEFAULT_TAG_DATA:
+        _, created = Tag.objects.get_or_create(
+            name=name,
+            defaults={'description': description, 'color': color},
+        )
+        if created:
+            created_count += 1
+    return created_count
 
 
 class TicketLoginView(LoginView):
@@ -315,6 +372,22 @@ def ticket_detail(request, ticket_id):
         'now': timezone.now(),
     }
     return render(request, 'tickets/ticket_detail.html', context)
+
+
+@login_required(login_url='login')
+def ticket_pdf_view(request, ticket_id):
+    """Печатная версия тикета для сохранения в PDF через браузер."""
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    comments = ticket.comments.select_related('author').all()
+    attachments = ticket.attachments.all()
+
+    context = {
+        'ticket': ticket,
+        'comments': comments,
+        'attachments': attachments,
+        'generated_at': timezone.now(),
+    }
+    return render(request, 'tickets/ticket_pdf.html', context)
 
 
 @login_required(login_url='login')
@@ -1051,6 +1124,67 @@ def ticket_statistics(request):
         'selected_tag': selected_tag,
     }
     return render(request, 'tickets/ticket_statistics.html', context)
+
+
+@login_required(login_url='login')
+@user_passes_test(is_admin)
+def initial_setup(request):
+    if request.method == 'POST':
+        action = (request.POST.get('action') or '').strip()
+
+        if action == 'priorities':
+            created = _create_default_priorities()
+            messages.success(request, f'Добавлено приоритетов: {created}.') if created else messages.info(
+                request,
+                'Все базовые приоритеты уже существуют.',
+            )
+            return redirect('initial_setup')
+
+        if action == 'statuses':
+            created = _create_default_statuses()
+            messages.success(request, f'Добавлено статусов: {created}.') if created else messages.info(
+                request,
+                'Все базовые статусы уже существуют.',
+            )
+            return redirect('initial_setup')
+
+        if action == 'tags':
+            created = _create_default_tags()
+            messages.success(request, f'Добавлено рекомендуемых тегов: {created}.') if created else messages.info(
+                request,
+                'Рекомендуемые теги уже существуют.',
+            )
+            return redirect('initial_setup')
+
+        if action == 'all':
+            priorities_created = _create_default_priorities()
+            statuses_created = _create_default_statuses()
+            tags_created = _create_default_tags()
+            total_created = priorities_created + statuses_created + tags_created
+
+            if total_created:
+                messages.success(
+                    request,
+                    'Первоначальная настройка выполнена: '
+                    f'приоритеты +{priorities_created}, статусы +{statuses_created}, теги +{tags_created}.',
+                )
+            else:
+                messages.info(request, 'Базовая настройка уже была выполнена ранее.')
+            return redirect('initial_setup')
+
+        messages.error(request, 'Неизвестное действие первоначальной настройки.')
+        return redirect('initial_setup')
+
+    context = {
+        'priorities_count': Priority.objects.count(),
+        'statuses_count': Status.objects.count(),
+        'tags_count': Tag.objects.count(),
+        'workstations_count': Workstation.objects.count(),
+        'approved_users_count': UserProfile.objects.filter(is_approved=True).count(),
+        'needs_bootstrap': not Priority.objects.exists() or not Status.objects.exists(),
+        'recommended_tags_count': len(DEFAULT_TAG_DATA),
+    }
+    return render(request, 'tickets/initial_setup.html', context)
 
 
 @require_approval

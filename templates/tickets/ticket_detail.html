@@ -1,7 +1,7 @@
 ﻿{% extends "base.html" %}
 {% load custom_filters %}
 
-{% block title %}{{ ticket.title }} - Ticket System{% endblock %}
+{% block title %}{{ ticket.title|fix_mojibake }} - Ticket System{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -415,7 +415,7 @@
 <div class="container-fluid px-0">
     <div class="ticket-header">
         <div>
-            <h2>{{ ticket.title }}</h2>
+            <h2>{{ ticket.title|fix_mojibake }}</h2>
             <p class="text-muted mb-0">Тикет #{{ ticket.id }}</p>
         </div>
         {% if can_edit %}
@@ -550,7 +550,7 @@
                 <h5 style="margin-bottom: 16px;">
                     <i class="fas fa-align-left"></i> Описание
                 </h5>
-                <p style="margin: 0;">{{ ticket.description|linebreaks }}</p>
+                <p style="margin: 0;">{{ ticket.description|fix_mojibake|linebreaks }}</p>
             </div>
 
             <div class="card">
@@ -1104,6 +1104,9 @@
                 
                 <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> К списку
+                </a>
+                <a href="{% url 'ticket_pdf_view' ticket.id %}" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                    <i class="fas fa-file-pdf"></i> PDF
                 </a>
                 {% if can_edit %}
                 <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">

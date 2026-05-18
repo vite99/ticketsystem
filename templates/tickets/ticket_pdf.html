@@ -1,0 +1,243 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тикет #{{ ticket.id }} - {{ ticket.title|fix_mojibake }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #111827;
+            margin: 0;
+            padding: 24px;
+            background: #ffffff;
+            line-height: 1.45;
+        }
+
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .system-name {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0 0 8px 0;
+        }
+
+        .ticket-number {
+            color: #4b5563;
+            font-size: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            border: 1px solid #dbe3f0;
+            border-radius: 10px;
+            padding: 14px 16px;
+            background: #f8fafc;
+        }
+
+        .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section h2 {
+            font-size: 20px;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .description,
+        .comment,
+        .attachment {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            background: #ffffff;
+        }
+
+        .comment-meta {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .footer {
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .empty {
+            color: #6b7280;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .page {
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="system-name">Ticket System</div>
+            <h1>{{ ticket.title|fix_mojibake }}</h1>
+            <div class="ticket-number">Тикет #{{ ticket.id }}</div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="label">Статус</div>
+                <div class="value">{{ ticket.status|default:"-" }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Приоритет</div>
+                <div class="value">{{ ticket.priority|default:"-" }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Создатель</div>
+                <div class="value">{{ ticket.creator.get_full_name|default:ticket.creator.username }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Назначено</div>
+                <div class="value">
+                    {% if ticket.assigned_to %}
+                        {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                    {% else %}
+                        Не назначено
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="label">Создано</div>
+                <div class="value">{{ ticket.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Обновлено</div>
+                <div class="value">{{ ticket.updated_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Рабочее место</div>
+                <div class="value">{{ ticket.workstation|default:"-" }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Срок</div>
+                <div class="value">{{ ticket.due_date|date:"d.m.Y H:i"|default:"-" }}</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Описание</h2>
+            <div class="description">{{ ticket.description|fix_mojibake|linebreaksbr }}</div>
+        </div>
+
+        <div class="section">
+            <h2>Теги</h2>
+            {% if ticket.tags.exists %}
+            <div class="tags">
+                {% for tag in ticket.tags.all %}
+                <span class="tag" style="background-color: {{ tag.color }};">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty">Теги не добавлены.</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Вложения</h2>
+            {% if attachments %}
+                {% for attachment in attachments %}
+                <div class="attachment">{{ attachment.file|filename }}</div>
+                {% endfor %}
+            {% else %}
+            <div class="empty">Вложения отсутствуют.</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Комментарии</h2>
+            {% if comments %}
+                {% for comment in comments %}
+                <div class="comment">
+                    <div class="comment-meta">
+                        {{ comment.author.get_full_name|default:comment.author.username }} • {{ comment.created_at|date:"d.m.Y H:i" }}
+                        {% if comment.is_internal %}• Приватный комментарий{% endif %}
+                    </div>
+                    <div>{{ comment.text|default:"-"|fix_mojibake|linebreaksbr }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="empty">Комментариев пока нет.</div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            Документ сформирован {{ generated_at|date:"d.m.Y H:i" }}.
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+            window.print();
+        });
+    </script>
+</body>
+</html>

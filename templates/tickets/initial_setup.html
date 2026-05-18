@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Первоначальная настройка - Ticket System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h2 class="mb-2">Первоначальная настройка системы</h2>
+        <p class="text-muted mb-0">
+            Здесь можно безопасно создать базовые справочники для запуска системы.
+            Повторный запуск ничего не удаляет и не дублирует.
+        </p>
+    </div>
+    {% if needs_bootstrap %}
+    <span class="badge text-bg-warning">Требуется базовая настройка</span>
+    {% else %}
+    <span class="badge text-bg-success">Базовая настройка выполнена</span>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Приоритеты</div>
+                <div class="fs-2 fw-bold">{{ priorities_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Статусы</div>
+                <div class="fs-2 fw-bold">{{ statuses_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Теги</div>
+                <div class="fs-2 fw-bold">{{ tags_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Рабочие места</div>
+                <div class="fs-2 fw-bold">{{ workstations_count }}</div>
+                <div class="text-muted small mt-2">Одобрено пользователей: {{ approved_users_count }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Быстрый запуск</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            Создаст базовые приоритеты, статусы и рекомендуемые теги для начала работы.
+        </p>
+        <form method="post" class="d-flex flex-wrap gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="all">
+            <button type="submit" class="btn btn-primary">Выполнить первоначальную настройку</button>
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">Вернуться в кабинет</a>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Приоритеты</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Будут созданы: Низкий, Средний, Высокий, Критический.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="priorities">
+                    <button type="submit" class="btn btn-outline-primary">Создать приоритеты</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Статусы</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Будут созданы: Открыт, В работе, Ожидание, Решен, Закрыт, Переоткрыт.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="statuses">
+                    <button type="submit" class="btn btn-outline-primary">Создать статусы</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Рекомендуемые теги</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Будут добавлены {{ recommended_tags_count }} базовых тегов для классификации обращений.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="tags">
+                    <button type="submit" class="btn btn-outline-primary">Создать теги</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Что настраивается дальше</h5>
+    </div>
+    <div class="card-body">
+        <ul class="mb-0">
+            <li>Рабочие места и кабинеты добавляются отдельно в разделе <strong>Админ → Рабочие места</strong>.</li>
+            <li>Теги можно дополнительно редактировать в разделе <strong>Админ → Теги</strong>.</li>
+            <li>Пользователи привязываются к кабинетам и рабочим местам на этапе одобрения.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

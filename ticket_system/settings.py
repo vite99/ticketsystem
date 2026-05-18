@@ -79,12 +79,27 @@ WSGI_APPLICATION = 'ticket_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = config('DB_ENGINE', default='sqlite')
+SQLITE_NAME = config('SQLITE_NAME', default=str(BASE_DIR / 'db.sqlite3'))
+
+if DB_ENGINE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('POSTGRES_DB', default='ticket_system'),
+            'USER': config('POSTGRES_USER', default='ticket_user'),
+            'PASSWORD': config('POSTGRES_PASSWORD', default='ticket_password'),
+            'HOST': config('POSTGRES_HOST', default='127.0.0.1'),
+            'PORT': config('POSTGRES_PORT', default=5432, cast=int),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': SQLITE_NAME,
+        }
+    }
 
 
 # Password validation
@@ -145,6 +160,11 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=Csv())
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv(),
+)
 
 # Email Configuration (SMTP)
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
