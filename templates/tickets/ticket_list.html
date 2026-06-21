@@ -1,140 +1,408 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Список тикетов - Ticket System{% endblock %}
 
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--fg-primary);
+        font-size: 0.9rem;
+    }
+
+    .ticket-row {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .ticket-row:hover {
+        background-color: #f8f9fa !important;
+        box-shadow: inset 4px 0 0 var(--primary);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        color: #cbd5e0;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h5 {
+        color: var(--fg-primary);
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: var(--fg-muted);
+        margin-bottom: 20px;
+    }
+
+    .page-header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .page-header-section h1 {
+        font-size: 2rem;
+        margin: 0;
+    }
+
+    .create-btn {
+        display: inline-block;
+    }
+
+    .pagination {
+        margin-top: 30px;
+    }
+
+    .pagination .page-link {
+        border-radius: 6px;
+        margin: 0 4px;
+        border: none;
+        color: var(--primary);
+        transition: all 0.3s ease;
+    }
+
+    .pagination .page-link:hover {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .table thead th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .table thead th a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding: 12px;
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 6px 12px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <h1 class="mb-4">📋 Список тикетов</h1>
-        
-        <!-- Поиск и фильтры -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form method="get" class="row g-3">
-                    <div class="col-md-4">
-                        <input type="text" name="q" class="form-control" placeholder="Поиск по названию..." value="{{ search_query }}">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="status" class="form-select">
-                            <option value="">Все статусы</option>
-                            {% for status in statuses %}
-                            <option value="{{ status.id }}" {% if request.GET.status|stringformat:"i" == status.id|stringformat:"i" %}selected{% endif %}>
-                                {{ status.get_name_display }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <select name="priority" class="form-select">
-                            <option value="">Все приоритеты</option>
-                            {% for priority in priorities %}
-                            <option value="{{ priority.id }}" {% if request.GET.priority|stringformat:"i" == priority.id|stringformat:"i" %}selected{% endif %}>
-                                {{ priority.get_name_display }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Поиск</button>
-                    </div>
-                </form>
+<div class="container-fluid px-0">
+    <div class="page-header-section">
+        <div>
+            <h1>{% if is_archive %}Архив тикетов{% else %}Список тикетов{% endif %}</h1>
+            <p class="text-muted mb-0">Всего: <strong>{{ page_obj.paginator.count }}</strong></p>
+        </div>
+        {% if user.is_authenticated %}
+        <a href="{% url 'ticket_create' %}" class="btn btn-success btn-lg create-btn">
+            <i class="fas fa-plus-circle"></i> Создать тикет
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+        <a href="{% url 'ticket_list' %}" class="btn {% if not is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            <i class="fas fa-list"></i> Активные
+        </a>
+        <a href="{% url 'ticket_archive' %}" class="btn {% if is_archive %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            <i class="fas fa-archive"></i> Архив
+        </a>
+    </div>
+
+    <div class="filter-card">
+        <form method="get" class="filter-row">
+            <div class="filter-group">
+                <label for="search">Поиск</label>
+                <input
+                    type="text"
+                    name="q"
+                    id="search"
+                    class="form-control"
+                    placeholder="Введите название или описание..."
+                    value="{{ search_query }}"
+                >
             </div>
+
+            <div class="filter-group">
+                <label for="status">Статус</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">Все статусы</option>
+                    {% for status in statuses %}
+                    <option value="{{ status.id }}" {% if selected_status|stringformat:"s" == status.id|stringformat:"s" %}selected{% endif %}>
+                        {{ status.get_name_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="priority">Приоритет</label>
+                <select name="priority" id="priority" class="form-select">
+                    <option value="">Все приоритеты</option>
+                    {% for priority in priorities %}
+                    <option value="{{ priority.id }}" {% if selected_priority|stringformat:"s" == priority.id|stringformat:"s" %}selected{% endif %}>
+                        {{ priority.get_name_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="tag">Тег</label>
+                <select name="tag" id="tag" class="form-select">
+                    <option value="">Все теги</option>
+                    {% for tag in tag_choices %}
+                    <option value="{{ tag.id }}" {% if selected_tag|stringformat:"s" == tag.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tag.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Применить
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> {% if is_archive %}Архивные тикеты{% else %}Тикеты{% endif %}
+            </h5>
+            <span id="ticket-count-container"
+                data-current-count="{{ page_obj.paginator.count }}"
+                hx-get="{% url 'ticket_count_partial' %}?{% if is_archive %}archive=1&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if selected_priority %}priority={{ selected_priority }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}"
+                hx-trigger="every 20s"
+                hx-swap="innerHTML"
+                hx-vals='js:{ current_count: document.getElementById("ticket-count-container")?.dataset.currentCount || "" }'
+                hx-on::after-settle="this.dataset.currentCount = this.textContent.trim()">
+                {{ page_obj.paginator.count }}
+            </span>
         </div>
 
-        <!-- Таблица тикетов -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Тикеты ({{ page_obj.paginator.count }})</h5>
-                {% if user.is_authenticated %}
-                <a href="{% url 'ticket_create' %}" class="btn btn-sm btn-light">+ Создать тикет</a>
-                {% endif %}
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 80px;">ID</th>
-                            <th>Название</th>
-                            <th style="width: 120px;">Приоритет</th>
-                            <th style="width: 120px;">Статус</th>
-                            <th style="width: 150px;">Создатель</th>
-                            <th style="width: 150px;">Назначено</th>
-                            <th style="width: 100px;">Дата</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for ticket in tickets %}
-                        <tr class="ticket-row" onclick="window.location='{% url 'ticket_detail' ticket.id %}';" style="cursor: pointer;">
-                            <td><strong>#{{ ticket.id }}</strong></td>
-                            <td>{{ ticket.title }}</td>
-                            <td>
-                                <span class="badge priority-{{ ticket.priority.name }}">
-                                    {{ ticket.priority.get_name_display }}
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="ticketsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">
+                            <a href="?{% if sort_query_string %}{{ sort_query_string }}&{% endif %}sort={{ next_sort_id }}">
+                                ID {% if current_sort == 'id' %}↑{% elif current_sort == '-id' %}↓{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?{% if sort_query_string %}{{ sort_query_string }}&{% endif %}sort={{ next_sort_title }}">
+                                Название {% if current_sort == 'title' %}↑{% elif current_sort == '-title' %}↓{% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 120px;">
+                            <a href="?{% if sort_query_string %}{{ sort_query_string }}&{% endif %}sort={{ next_sort_priority }}">
+                                Приоритет {% if current_sort == 'priority' %}↑{% elif current_sort == '-priority' %}↓{% endif %}
+                            </a>
+                        </th>
+                        <th style="width: 130px;">
+                            <a href="?{% if sort_query_string %}{{ sort_query_string }}&{% endif %}sort={{ next_sort_status }}">
+                                Статус {% if current_sort == 'status' %}↑{% elif current_sort == '-status' %}↓{% endif %}
+                            </a>
+                        </th>
+                        {% if user.is_staff %}
+                        <th style="width: 140px;">Создатель</th>
+                        <th style="width: 100px;">Кабинет</th>
+                        {% endif %}
+                        <th style="width: 150px;">Назначено</th>
+                        <th style="width: 110px;">
+                            <a href="?{% if sort_query_string %}{{ sort_query_string }}&{% endif %}sort={{ next_sort_created_at }}">
+                                Дата {% if current_sort == 'created_at' %}↑{% elif current_sort == '-created_at' %}↓{% endif %}
+                            </a>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="ticket-rows-container"
+                    data-current-signature="{{ table_signature }}"
+                    hx-get="{% url 'ticket_list_rows_partial' %}?{% if is_archive %}archive=1&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}{% if selected_status %}status={{ selected_status }}&{% endif %}{% if selected_priority %}priority={{ selected_priority }}&{% endif %}{% if selected_tag %}tag={{ selected_tag }}&{% endif %}{% if current_sort %}sort={{ current_sort|urlencode }}&{% endif %}{% if page_obj.number %}page={{ page_obj.number }}{% endif %}"
+                    hx-trigger="every 20s"
+                    hx-swap="innerHTML"
+                    hx-vals='js:{ current_signature: document.getElementById("ticket-rows-container")?.dataset.currentSignature || "" }'
+                    hx-on::after-settle="this.dataset.currentSignature = this.querySelector('tr')?.dataset.signature || this.dataset.currentSignature">
+                    {% for ticket in tickets %}
+                    <tr class="ticket-row" {% if forloop.first %}data-signature="{{ table_signature }}"{% endif %} onclick="window.location='{% url 'ticket_detail' ticket.id %}';">
+                        <td>
+                            <strong style="color: var(--primary);">#{{ ticket.id }}</strong>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;">{{ ticket.title }}</div>
+                            {% if ticket.tags.all %}
+                            <div class="mt-1 d-flex flex-wrap gap-1">
+                                {% for tag in ticket.tags.all|slice:":2" %}
+                                <span class="badge rounded-pill" style="background-color: {{ tag.color }}; font-size: 0.72rem;">
+                                    {{ tag.name }}
                                 </span>
-                            </td>
-                            <td>
-                                <span class="badge" style="background-color: {{ ticket.status.color }};">
-                                    {{ ticket.status.get_name_display }}
+                                {% endfor %}
+                                {% if ticket.tags.count > 2 %}
+                                <span class="badge rounded-pill bg-light text-dark border" style="font-size: 0.72rem;">
+                                    +{{ ticket.tags.count|add:"-2" }}
                                 </span>
-                            </td>
-                            <td>{{ ticket.creator.get_full_name|default:ticket.creator.username }}</td>
-                            <td>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge priority-{{ ticket.priority.name }}">
+                                {{ ticket.priority.get_name_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background-color: {{ ticket.status.color }}; color: white;">
+                                {{ ticket.status.get_name_display }}
+                            </span>
+                        </td>
+                        {% if user.is_staff %}
+                        <td>
+                            <small>{{ ticket.creator.get_full_name|default:ticket.creator.username }}</small>
+                        </td>
+                        <td>
+                            <small>
+                                {% if ticket.workstation %}
+                                    <strong>{{ ticket.workstation.room }}</strong><br>
+                                    <span style="color: #718096;">{{ ticket.workstation.number }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </small>
+                        </td>
+                        {% endif %}
+                        <td>
+                            {% if request.user.is_staff and not is_archive %}
                                 {% if ticket.assigned_to %}
-                                    {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                    <small style="font-weight: 500;">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</small>
+                                {% else %}
+                                    <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}" style="display:inline;" onclick="event.stopPropagation();">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{% url 'ticket_list' %}">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-2" title="Назначить себе">
+                                            👤 Взять
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                {% if ticket.assigned_to %}
+                                    <small style="font-weight: 500;">{{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}</small>
                                 {% else %}
                                     <span class="text-muted">не назначено</span>
                                 {% endif %}
-                            </td>
-                            <td>{{ ticket.created_at|date:"d.m.Y" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                Тикеты не найдены
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ ticket.created_at|date:"d.m.Y" }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-
-        <!-- Пагинация -->
-        {% if page_obj.has_other_pages %}
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page=1">Первая</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">← Назад</a>
-                </li>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                    {% if page_obj.number == num %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                    </li>
-                    {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Вперед →</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-search"></i>
+            </div>
+            <h5>Тикеты не найдены</h5>
+            <p>Попробуйте изменить параметры фильтра или создайте новый тикет.</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'ticket_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Создать тикет
+            </a>
+            {% endif %}
+        </div>
         {% endif %}
     </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="d-flex justify-content-center">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page=1">
+                    <i class="fas fa-chevron-left"></i> Первая
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                    Последняя <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
+

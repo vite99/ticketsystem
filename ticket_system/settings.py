@@ -17,6 +17,19 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def cast_debug(value):
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {'1', 'true', 'yes', 'on', 'dev', 'debug', 'development'}:
+        return True
+    if normalized in {'0', 'false', 'no', 'off', 'prod', 'production', 'release'}:
+        return False
+
+    raise ValueError(f'Invalid DEBUG value: {value}')
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -24,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-*tb24%fvk9$1$z(jaowj8ow(crqfdz-oy0p4ux5y^yb685*-mv')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=cast_debug)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -38,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'rest_framework',
     'corsheaders',
     'tickets',
@@ -78,12 +92,27 @@ WSGI_APPLICATION = 'ticket_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = config('DB_ENGINE', default='sqlite')
+SQLITE_NAME = config('SQLITE_NAME', default=str(BASE_DIR / 'db.sqlite3'))
+
+if DB_ENGINE == 'postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('POSTGRES_DB', default='ticket_system'),
+            'USER': config('POSTGRES_USER', default='ticket_user'),
+            'PASSWORD': config('POSTGRES_PASSWORD', default='ticket_password'),
+            'HOST': config('POSTGRES_HOST', default='127.0.0.1'),
+            'PORT': config('POSTGRES_PORT', default=5432, cast=int),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': SQLITE_NAME,
+        }
+    }
 
 
 # Password validation
@@ -144,6 +173,11 @@ REST_FRAMEWORK = {
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=Csv())
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:8000,http://127.0.0.1:8000',
+    cast=Csv(),
+)
 
 # Email Configuration (SMTP)
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -153,6 +187,19 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@ticketsystem.local')
+
+# Notification channels
+NOTIFY_EMAIL_ENABLED = config('NOTIFY_EMAIL_ENABLED', default=True, cast=bool)
+ADMIN_NOTIFICATION_EMAILS = config('ADMIN_NOTIFICATION_EMAILS', default='', cast=Csv())
+VK_NOTIFY_ENABLED = config('VK_NOTIFY_ENABLED', default=False, cast=bool)
+VK_GROUP_TOKEN = config('VK_GROUP_TOKEN', default='')
+VK_API_VERSION = config('VK_API_VERSION', default='5.199')
+SITE_URL = config('SITE_URL', default='')
+
+# Login/Logout redirects
+LOGIN_REDIRECT_URL = 'ticket_list'
+LOGIN_URL = 'login'
+LOGOUT_REDIRECT_URL = 'ticket_list'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

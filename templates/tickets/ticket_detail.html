@@ -1,177 +1,1165 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
+{% load custom_filters %}
 
-{% block title %}{{ ticket.title }} - Ticket System{% endblock %}
+{% block title %}{{ ticket.title|fix_mojibake }} - Ticket System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .ticket-header h2 {
+        font-size: 1.8rem;
+        margin: 0;
+    }
+
+    .ticket-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .meta-item {
+        background-color: #f8f9fa;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+    }
+
+    .meta-label {
+        font-size: 0.75rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .meta-value {
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .description-section {
+        background-color: #fafbfc;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+
+    .attachment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .attachment-item:hover {
+        background-color: #f0f0f0;
+        padding-left: 16px;
+    }
+
+    .attachment-item a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .attachment-item a:hover {
+        text-decoration: underline;
+    }
+
+    .sidebar-card {
+        margin-bottom: 20px;
+    }
+
+    .action-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .form-group textarea {
+        min-height: 120px;
+    }
+
+    /* Chat Interface Styles */
+    #comments-container {
+        scroll-behavior: smooth;
+        background: linear-gradient(to bottom, #f9fafb, #ffffff);
+    }
+
+    #comments-container > * {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Chat bubbles smooth animation */
+    .card-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Tailwind display fix for flex */
+    .flex {
+        display: flex;
+    }
+
+    .flex-col {
+        flex-direction: column;
+    }
+
+    .flex-1 {
+        flex: 1 1 0%;
+    }
+
+    .max-w-md {
+        max-width: 28rem;
+    }
+
+    .overflow-y-auto {
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .justify-end {
+        justify-content: flex-end;
+    }
+
+    .justify-start {
+        justify-content: flex-start;
+    }
+
+    .items-baseline {
+        align-items: baseline;
+    }
+
+    .items-center {
+        align-items: center;
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    .gap-3 {
+        gap: 0.75rem;
+    }
+
+    .mb-1 {
+        margin-bottom: 0.25rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
+
+    .px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .py-3 {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .py-4 {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .rounded-2xl {
+        border-radius: 1rem;
+    }
+
+    .rounded-tl-sm {
+        border-top-left-radius: 0.125rem;
+    }
+
+    .rounded-tr-sm {
+        border-top-right-radius: 0.125rem;
+    }
+
+    .bg-indigo-600 {
+        background-color: #4f46e5;
+    }
+
+    .bg-blue-600 {
+        background-color: #2563eb;
+    }
+
+    .bg-blue-500 {
+        background-color: #3b82f6;
+    }
+
+    .bg-blue-50 {
+        background-color: #eff6ff;
+    }
+
+    .bg-blue-100 {
+        background-color: #dbeafe;
+    }
+
+    .bg-slate-100 {
+        background-color: #f1f5f9;
+    }
+
+    .bg-amber-50 {
+        background-color: #fffbeb;
+    }
+
+    .bg-amber-100 {
+        background-color: #fef3c7;
+    }
+
+    .text-white {
+        color: #ffffff;
+    }
+
+    .text-blue-500 {
+        color: #3b82f6;
+    }
+
+    .text-blue-700 {
+        color: #1d4ed8;
+    }
+
+    .text-blue-800 {
+        color: #1e40af;
+    }
+
+    .text-slate-900 {
+        color: #0f172a;
+    }
+
+    .text-slate-500 {
+        color: #64748b;
+    }
+
+    .border-blue-400 {
+        border-color: #60a5fa;
+    }
+
+    .hover\:bg-blue-600:hover {
+        background-color: #2563eb;
+    }
+
+    .hover\:bg-blue-100:hover {
+        background-color: #dbeafe;
+    }
+
+    .hover\:bg-slate-50:hover {
+        background-color: #f8fafc;
+    }
+
+    .text-slate-400 {
+        color: #94a3b8;
+    }
+
+    .text-amber-900 {
+        color: #78350f;
+    }
+
+    .text-amber-800 {
+        color: #92400e;
+    }
+
+    .text-amber-700 {
+        color: #a16207;
+    }
+
+    .text-amber-600 {
+        color: #b45309;
+    }
+
+    .text-indigo-900 {
+        color: #312e81;
+    }
+
+    .border {
+        border: 1px solid currentColor;
+    }
+
+    .border-t {
+        border-top: 1px solid currentColor;
+    }
+
+    .border-amber-200 {
+        border-color: #fcd34d;
+    }
+
+    .border-indigo-500 {
+        border-color: #6366f1;
+    }
+
+    .border-slate-200 {
+        border-color: #e2e8f0;
+    }
+
+    .border-slate-50 {
+        background-color: #f9fafb;
+    }
+
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .text-sm {
+        font-size: 0.875rem;
+    }
+
+    .text-xs {
+        font-size: 0.75rem;
+    }
+
+    .text-lg {
+        font-size: 1.125rem;
+    }
+
+    .text-5xl {
+        font-size: 3rem;
+    }
+
+    .font-semibold {
+        font-weight: 600;
+    }
+
+    .font-medium {
+        font-weight: 500;
+    }
+
+    .leading-relaxed {
+        line-height: 1.625;
+    }
+
+    .whitespace-pre-wrap {
+        white-space: pre-wrap;
+    }
+
+    .truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .truncatewords {
+        display: inline-block;
+    }
+
+    .transition-colors {
+        transition-property: color;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .opacity-30 {
+        opacity: 0.3;
+    }
+
+    .space-y-2 > * + * {
+        margin-top: 0.5rem;
+    }
+
+    .mt-1 {
+        margin-top: 0.25rem;
+    }
+
+    .mt-3 {
+        margin-top: 0.75rem;
+    }
+
+    .pt-3 {
+        padding-top: 0.75rem;
+    }
+
+    .me-2 {
+        margin-right: 0.5rem;
+    }
+
+    .ms-2 {
+        margin-left: 0.5rem;
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+    }
+
+    .min-h-96 {
+        min-height: 24rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <!-- Информация о тикете -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">#{{ ticket.id }} - {{ ticket.title }}</h4>
-                {% if can_edit %}
-                <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-sm btn-warning">Редактировать</a>
-                {% endif %}
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Статус:</strong></p>
-                        <span class="badge" style="background-color: {{ ticket.status.color }}; font-size: 1rem;">
+<div class="container-fluid px-0">
+    <div class="ticket-header">
+        <div>
+            <h2>{{ ticket.title|fix_mojibake }}</h2>
+            <p class="text-muted mb-0">Тикет #{{ ticket.id }}</p>
+        </div>
+        {% if can_edit %}
+        <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Редактировать
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="ticket-meta">
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-check-circle"></i> Статус
+                    </div>
+                    <div class="meta-value" id="status-badge-container"
+                        hx-get="{% url 'ticket_status_partial' ticket.id %}"
+                        hx-trigger="every 10s"
+                        hx-swap="innerHTML swap:0.3s">
+                        <!-- HTMX загружает статус здесь -->
+                        <span class="badge" style="background-color: {{ ticket.status.color }}; color: white; padding: 6px 12px;">
                             {{ ticket.status.get_name_display }}
                         </span>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Приоритет:</strong></p>
-                        <span class="badge priority-{{ ticket.priority.name }}" style="font-size: 1rem;">
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-exclamation-triangle"></i> Приоритет
+                    </div>
+                    <div class="meta-value">
+                        <span class="badge priority-{{ ticket.priority.name }}" style="padding: 6px 12px;">
                             {{ ticket.priority.get_name_display }}
                         </span>
                     </div>
                 </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Создатель:</strong> {{ ticket.creator.get_full_name|default:ticket.creator.username }}</p>
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-user"></i> Создатель
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Назначено:</strong> 
-                            {% if ticket.assigned_to %}
-                                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                    <div class="meta-value">
+                        {% if user.is_staff and ticket.creator.id != user.id %}
+                            <a href="{% url 'user_detail_admin' ticket.creator.id %}" 
+                               style="color: inherit; text-decoration: none;"
+                               title="Нажмите, чтобы посмотреть список тикетов пользователя">
+                                {{ ticket.creator.get_full_name|default:ticket.creator.username }}
+                            </a>
+                        {% else %}
+                            {{ ticket.creator.get_full_name|default:ticket.creator.username }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-user-check"></i> Назначено
+                    </div>
+                    <div class="meta-value">
+                        {% if ticket.assigned_to %}
+                            {% if user.is_staff and ticket.assigned_to.id != user.id %}
+                                <a href="{% url 'user_detail_admin' ticket.assigned_to.id %}" 
+                                   style="color: inherit; text-decoration: none;"
+                                   title="Нажмите, чтобы посмотреть список тикетов пользователя">
+                                    {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                </a>
                             {% else %}
-                                <span class="text-muted">не назначено</span>
+                                {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
                             {% endif %}
-                        </p>
+                        {% else %}
+                            <span class="text-muted">Не назначено</span>
+                        {% endif %}
                     </div>
                 </div>
 
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Дата создания:</strong> {{ ticket.created_at|date:"d.m.Y H:i" }}</p>
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-calendar"></i> Создано
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Последнее обновление:</strong> {{ ticket.updated_at|date:"d.m.Y H:i" }}</p>
-                    </div>
+                    <div class="meta-value">{{ ticket.created_at|date:"d.m.Y" }}</div>
                 </div>
 
-                {% if ticket.due_date %}
-                <div class="alert alert-info">
-                    <strong>Срок выполнения:</strong> {{ ticket.due_date|date:"d.m.Y H:i" }}
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-sync"></i> Обновлено
+                    </div>
+                    <div class="meta-value">{{ ticket.updated_at|date:"d.m.Y" }}</div>
+                </div>
+
+                {% if ticket.workstation %}
+                <div class="meta-item">
+                    <div class="meta-label">
+                        <i class="fas fa-desktop"></i> Рабочее место
+                    </div>
+                    <div class="meta-value">
+                        <div><strong>{{ ticket.workstation.room }}</strong></div>
+                        <div style="font-size: 0.9rem;">{{ ticket.workstation.number }}</div>
+                        {% if ticket.workstation.location %}
+                        <div style="font-size: 0.85rem; color: #718096; margin-top: 4px;">
+                            {{ ticket.workstation.location }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
+            </div>
 
-                {% if ticket.tags.exists %}
-                <div class="mb-3">
-                    <p><strong>Теги:</strong></p>
+            {% if ticket.due_date %}
+            <div class="alert alert-warning" style="border-left: 4px solid #ffc107;">
+                <i class="fas fa-hourglass-end"></i>
+                <strong>Срок выполнения:</strong> {{ ticket.due_date|date:"d.m.Y H:i" }}
+            </div>
+            {% endif %}
+
+            {% if request.user.is_staff and ticket.tags.exists %}
+            <div class="mb-4">
+                <h6 style="margin-bottom: 12px;">
+                    <i class="fas fa-tags"></i> Теги
+                </h6>
+                <div>
                     {% for tag in ticket.tags.all %}
-                    <span class="badge" style="background-color: {{ tag.color }};">{{ tag.name }}</span>
+                    <span class="badge" style="background-color: {{ tag.color }}; color: white; padding: 6px 12px; margin-right: 8px; margin-bottom: 8px;">
+                        {{ tag.name }}
+                    </span>
                     {% endfor %}
                 </div>
-                {% endif %}
-
-                <hr>
-                <h5>Описание</h5>
-                <p>{{ ticket.description|linebreaks }}</p>
             </div>
-        </div>
+            {% endif %}
 
-        <!-- Комментарии -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Комментарии ({{ comments.count }})</h5>
+            <div class="description-section mb-4">
+                <h5 style="margin-bottom: 16px;">
+                    <i class="fas fa-align-left"></i> Описание
+                </h5>
+                <p style="margin: 0;">{{ ticket.description|fix_mojibake|linebreaks }}</p>
             </div>
-            <div class="card-body">
-                {% for comment in comments %}
-                    {% if not comment.is_internal or user == comment.author or user == ticket.creator or user == ticket.assigned_to or user.is_staff %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-                                {% if comment.is_internal %}
-                                <span class="badge bg-warning">Внутренний</span>
+
+            <div class="card">
+                <div class="card-header flex gap-3 items-center">
+                    <i class="fas fa-comments text-indigo-600 text-lg"></i>
+                    <h5 class="mb-0 text-lg font-semibold">
+                        Диалог
+                        <span class="badge bg-slate-200 text-slate-800 ms-2" id="comment-count">
+                            {% if comments %}{{ comments.count }}{% else %}0{% endif %}
+                        </span>
+                    </h5>
+                </div>
+                <div class="card-body p-0 flex flex-col" style="height: 500px;">
+                    {# Контейнер для чата с HTMX #}
+                    <div id="comments-container" 
+                         class="flex-1 overflow-y-auto px-4 py-4"
+                         hx-get="{% url 'ticket_comments_partial' ticket.id %}"
+                         hx-trigger="every 15s"
+                         hx-swap="beforeend"
+                         hx-vals='js:{
+                            after_id: (() => {
+                                const comments = document.querySelectorAll("#comments-container [data-comment-id]");
+                                return comments.length ? comments[comments.length - 1].dataset.commentId : "";
+                            })()
+                         }'>
+                        <!-- HTMX загружает комментарии здесь -->
+                        {% if comments %}
+                            {% for comment in comments %}
+                                {% if not comment.is_internal or user == comment.author or user == ticket.creator or user == ticket.assigned_to or user.is_staff %}
+                                    {% if comment.is_internal %}
+                                        {# Внутренний комментарий #}
+                                        <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
+                                            <div class="flex flex-col max-w-md">
+                                                <div class="flex items-baseline gap-2 mb-1">
+                                                    <span class="text-sm font-semibold text-amber-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                        <i class="fas fa-lock mr-1"></i> Приватный
+                                                    </span>
+                                                    <span class="text-xs text-amber-600">{{ comment.created_at|time:"H:i" }}</span>
+                                                </div>
+                                                <div class="bg-amber-50 border border-amber-200 rounded-2xl rounded-tl-sm px-4 py-3 text-amber-900">
+                                                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                                                    {% if comment.attachments.all %}
+                                                    <div class="mt-3 pt-3 border-t border-amber-200">
+                                                        <div class="grid grid-cols-1 gap-2">
+                                                            {% for attachment in comment.attachments.all %}
+                                                            <a href="{{ attachment.file.url }}" target="_blank" 
+                                                               class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-100/50 hover:bg-amber-100 transition-all duration-200 border border-amber-200/50 hover:border-amber-300">
+                                                                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-200/70 group-hover:bg-amber-300 flex items-center justify-center transition-all">
+                                                                    {% if 'pdf' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-pdf text-red-700" style="font-size: 16px;"></i>
+                                                                    {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-word text-blue-700" style="font-size: 16px;"></i>
+                                                                    {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-excel text-green-700" style="font-size: 16px;"></i>
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-image text-purple-700" style="font-size: 16px;"></i>
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-archive text-orange-700" style="font-size: 16px;"></i>
+                                                                    {% else %}
+                                                                        <i class="fas fa-file text-amber-700" style="font-size: 16px;"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="flex-1 min-w-0">
+                                                                    <p class="text-xs font-medium text-amber-900 truncate group-hover:text-amber-950">
+                                                                        {{ attachment.file|filename }}
+                                                                    </p>
+                                                                    <p class="text-xs text-amber-700/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                                                </div>
+                                                                <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <i class="fas fa-download text-amber-600 text-sm"></i>
+                                                                </div>
+                                                            </a>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% elif comment.author == user %}
+                                        {# Сообщение текущего пользователя (справа) #}
+                                        <div class="flex justify-end mb-4" data-comment-id="{{ comment.id }}">
+                                            <div class="flex flex-col max-w-md">
+                                                    <div class="flex items-baseline justify-end gap-2 mb-1">
+                                                        <span class="text-xs text-blue-500">{{ comment.created_at|time:"H:i" }}</span>
+                                                        <span class="text-sm font-semibold text-blue-700">Вы</span>
+                                                </div>
+                                                <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
+                                                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                                                    {% if comment.attachments.all %}
+                                                    <div class="mt-2 pt-2 border-t border-blue-400">
+                                                        <div class="grid grid-cols-1 gap-2">
+                                                            {% for attachment in comment.attachments.all %}
+                                                            <a href="{{ attachment.file.url }}" target="_blank" 
+                                                               class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 border-2 border-white shadow-sm">
+                                                                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-all">
+                                                                    {% if 'pdf' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-pdf text-red-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
+                                                                    {% else %}
+                                                                        <i class="fas fa-file text-blue-600" style="font-size: 16px;"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="flex-1 min-w-0">
+                                                                    <p class="text-xs font-medium text-blue-700 truncate group-hover:text-blue-800">
+                                                                        {{ attachment.file|filename }}
+                                                                    </p>
+                                                                    <p class="text-xs text-slate-500">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                                                </div>
+                                                                <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <i class="fas fa-download text-blue-500 text-sm"></i>
+                                                                </div>
+                                                            </a>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        {# Сообщение других пользователей (слева) #}
+                                        <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
+                                            <div class="flex flex-col max-w-md">
+                                                <div class="flex items-baseline gap-2 mb-1">
+                                                    <span class="text-sm font-semibold text-slate-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                                                    <span class="text-xs text-slate-500">{{ comment.created_at|time:"H:i" }}</span>
+                                                </div>
+                                                <div class="bg-slate-100 text-slate-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                                                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                                                    {% if comment.attachments.all %}
+                                                    <div class="mt-3 pt-3 border-t border-slate-200">
+                                                        <div class="grid grid-cols-1 gap-2">
+                                                            {% for attachment in comment.attachments.all %}
+                                                            <a href="{{ attachment.file.url }}" target="_blank" 
+                                                               class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-200/50 hover:bg-slate-200 transition-all duration-200 border border-slate-300/50 hover:border-slate-400">
+                                                                <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-300/70 group-hover:bg-slate-400 flex items-center justify-center transition-all">
+                                                                    {% if 'pdf' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-pdf text-red-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
+                                                                    {% elif 'zip' in attachment.file.name|lower %}
+                                                                        <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
+                                                                    {% else %}
+                                                                        <i class="fas fa-file text-slate-600" style="font-size: 16px;"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div class="flex-1 min-w-0">
+                                                                    <p class="text-xs font-medium text-slate-900 truncate group-hover:text-slate-950">
+                                                                        {{ attachment.file|filename }}
+                                                                    </p>
+                                                                    <p class="text-xs text-slate-600/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                                                </div>
+                                                                <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <i class="fas fa-download text-slate-600 text-sm"></i>
+                                                                </div>
+                                                            </a>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
+                            {% endfor %}
+                            {% if remaining_comments > 0 %}
+                            <div id="load-more-btn" class="flex justify-center py-4">
+                                <button hx-get="{% url 'load_more_comments' ticket.id %}?offset=10"
+                                        hx-target="#comments-container"
+                                        hx-swap="beforebegin"
+                                        class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">
+                                    📥 Загрузить {{ remaining_comments }} сообщений
+                                </button>
                             </div>
-                            <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
-                        </div>
-                        <p>{{ comment.content|linebreaks }}</p>
-                        <hr>
+                            {% endif %}
+                        {% else %}
+                            <div class="flex flex-col items-center justify-center h-full min-h-96 text-slate-400">
+                                <i class="fas fa-comments text-5xl mb-4 opacity-30"></i>
+                                <p class="text-lg font-medium text-slate-500">Сообщений пока нет</p>
+                                <p class="text-sm text-slate-400 mt-1">Начните диалог первым.</p>
+                            </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
-                {% empty %}
-                <p class="text-muted">Комментариев нет</p>
-                {% endfor %}
+                </div>
 
-                {% if user.is_authenticated %}
-                <form method="post" action="{% url 'add_comment' ticket.id %}" class="mt-3">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-primary">Добавить комментарий</button>
-                </form>
-                {% endif %}
+                {% include "tickets/partials/comment_section_partial.html" %}
             </div>
         </div>
-    </div>
 
-    <!-- Боковая панель -->
-    <div class="col-md-4">
-        <!-- Вложения -->
-        {% if attachments %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Вложения</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-group">
+        <div class="col-lg-4">
+            {% if attachments %}
+            <div class="card sidebar-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paperclip"></i> Вложения
+                    </h5>
+                </div>
+                <div class="card-body">
                     {% for attachment in attachments %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div class="attachment-item">
                         <div>
-                            <a href="{{ attachment.file.url }}" target="_blank">📎 {{ attachment.file.name|slice:"33:" }}</a>
+                            <a href="{{ attachment.file.url }}" target="_blank">
+                                <i class="fas fa-file"></i> {{ attachment.file|filename }}
+                            </a>
                             {% if attachment.description %}
                             <p class="text-muted small mb-0">{{ attachment.description }}</p>
                             {% endif %}
                         </div>
                         <small class="text-muted">{{ attachment.uploaded_at|date:"d.m" }}</small>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
-        </div>
-        {% endif %}
-
-        <!-- Информационная панель -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Информация</h5>
-            </div>
-            <div class="card-body">
-                <dl class="row">
-                    <dt class="col-sm-6">ID:</dt>
-                    <dd class="col-sm-6">#{{ ticket.id }}</dd>
-
-                    {% if ticket.estimated_hours %}
-                    <dt class="col-sm-6">Часы:</dt>
-                    <dd class="col-sm-6">{{ ticket.estimated_hours }} ч.</dd>
-                    {% endif %}
-
-                    {% if ticket.resolved_at %}
-                    <dt class="col-sm-6">Решено:</dt>
-                    <dd class="col-sm-6">{{ ticket.resolved_at|date:"d.m.Y" }}</dd>
-                    {% endif %}
-
-                    {% if ticket.closed_at %}
-                    <dt class="col-sm-6">Закрыто:</dt>
-                    <dd class="col-sm-6">{{ ticket.closed_at|date:"d.m.Y" }}</dd>
-                    {% endif %}
-                </dl>
-            </div>
-        </div>
-
-        <!-- Кнопки действий -->
-        <div class="d-grid gap-2">
-            <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">← Вернуться к списку</a>
-            {% if can_edit %}
-            <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">Редактировать</a>
             {% endif %}
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-bold">Детали</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted ps-3" style="width:45%">Рабочее место</td>
+                                <td class="fw-semibold pe-3">
+                                    {% if ticket.workstation %}
+                                        {{ ticket.workstation }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-3">Срок</td>
+                                <td class="pe-3">
+                                    {% if ticket.due_date %}
+                                        {% if ticket.due_date < now and ticket.status.name != 'resolved' and ticket.status.name != 'closed' %}
+                                            <span class="text-danger fw-bold">
+                                                {{ ticket.due_date|date:"d.m.Y H:i" }}
+                                            </span>
+                                        {% else %}
+                                            {{ ticket.due_date|date:"d.m.Y H:i" }}
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-3">Часов</td>
+                                <td class="pe-3">
+                                    {% if ticket.estimated_hours %}
+                                        {{ ticket.estimated_hours }} ч.
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if ticket.resolved_at %}
+                            <tr>
+                                <td class="text-muted ps-3">Решено</td>
+                                <td class="pe-3">{{ ticket.resolved_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if ticket.closed_at %}
+                            <tr>
+                                <td class="text-muted ps-3">Закрыто</td>
+                                <td class="pe-3">{{ ticket.closed_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if request.user.is_staff %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-bold">Теги</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        {% if ticket.tags.all %}
+                            {% for tag in ticket.tags.all %}
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <span class="badge rounded-pill" style="background-color: {{ tag.color }}">
+                                    {{ tag.name }}
+                                </span>
+                                {% if can_edit %}
+                                <form method="post" action="{% url 'remove_ticket_tag' ticket.id tag.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-link p-0 text-danger text-decoration-none"
+                                            title="Убрать тег"
+                                            onclick="return confirm('Убрать тег {{ tag.name }}?')">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Теги пока не добавлены.</span>
+                        {% endif %}
+                    </div>
+
+                    {% if can_edit and available_tags %}
+                    <form method="post" action="{% url 'add_ticket_tag' ticket.id %}" class="d-flex gap-2 align-items-center mt-3">
+                        {% csrf_token %}
+                        <select name="tag_id" class="form-select form-select-sm">
+                            <option value="">Выберите тег</option>
+                            {% for tag in available_tags %}
+                            <option value="{{ tag.id }}">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary flex-shrink-0" title="Добавить тег">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if can_edit and not available_tags %}
+                    <div class="small text-muted mt-3">Свободных тегов для добавления сейчас нет.</div>
+                    {% endif %}
+                    {% if user.is_staff %}
+                    <div class="small mt-3">
+                        <a href="{% url 'tag_list' %}" class="text-decoration-none">Управление тегами</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header fw-bold">История изменений</div>
+                <div class="card-body p-0">
+                    {% if history_entries %}
+                    <div class="list-group list-group-flush">
+                        {% for entry in recent_history_entries %}
+                        <div class="list-group-item px-3 py-3">
+                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                <div>
+                                    <div class="fw-semibold text-dark">
+                                        {{ entry.get_action_display }}
+                                    </div>
+                                    <div class="small text-muted">
+                                        {% if entry.actor %}
+                                            {{ entry.actor.get_full_name|default:entry.actor.username }}
+                                        {% else %}
+                                            Система
+                                        {% endif %}
+                                    </div>
+                                    {% if entry.old_value or entry.new_value %}
+                                    <div class="small mt-2">
+                                        {% if entry.old_value %}
+                                        <div class="text-muted">Было: {{ entry.old_value }}</div>
+                                        {% endif %}
+                                        {% if entry.new_value %}
+                                        <div>Стало: {{ entry.new_value }}</div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="small text-muted text-nowrap">
+                                    {{ entry.created_at|date:"d.m.Y H:i" }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% if older_history_entries %}
+                        <div id="history-more" style="display: none;">
+                            {% for entry in older_history_entries %}
+                            <div class="list-group-item px-3 py-3">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <div class="fw-semibold text-dark">
+                                            {{ entry.get_action_display }}
+                                        </div>
+                                        <div class="small text-muted">
+                                            {% if entry.actor %}
+                                                {{ entry.actor.get_full_name|default:entry.actor.username }}
+                                            {% else %}
+                                                Система
+                                            {% endif %}
+                                        </div>
+                                        {% if entry.old_value or entry.new_value %}
+                                        <div class="small mt-2">
+                                            {% if entry.old_value %}
+                                            <div class="text-muted">Было: {{ entry.old_value }}</div>
+                                            {% endif %}
+                                            {% if entry.new_value %}
+                                            <div>Стало: {{ entry.new_value }}</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted text-nowrap">
+                                        {{ entry.created_at|date:"d.m.Y H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="list-group-item px-3 py-2 bg-light">
+                            <button type="button"
+                                    id="history-toggle-btn"
+                                    class="btn btn-sm btn-outline-secondary w-100"
+                                    onclick="
+                                        const more = document.getElementById('history-more');
+                                        const btn = document.getElementById('history-toggle-btn');
+                                        const expanded = more.style.display !== 'none';
+                                        more.style.display = expanded ? 'none' : 'block';
+                                        btn.textContent = expanded ? 'Показать все действия' : 'Свернуть историю';
+                                    ">
+                                Показать все действия
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="px-3 py-3 text-muted small">
+                        История изменений пока пуста.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if request.user.is_staff %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    {% if ticket.assigned_to == request.user %}
+                    <form method="post" action="{% url 'unassign_ticket' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Снять тикет с себя?')">
+                            Снять с себя
+                        </button>
+                    </form>
+                    {% elif not ticket.assigned_to %}
+                    <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary w-100">
+                            Назначить мне
+                        </button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'assign_ticket_to_me' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-primary w-100" onclick="return confirm('Переназначить тикет на себя?')">
+                            Переназначить мне
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if can_cancel_ticket %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="fw-semibold">Отмена заявки</div>
+                        <div class="text-muted small">Пока тикет еще не взят в работу, вы можете отозвать заявку.</div>
+                    </div>
+                    <form method="post" action="{% url 'cancel_ticket_by_creator' ticket.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Отозвать заявку по этому тикету?')">
+                            Отозвать заявку
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="action-grid">
+                {% include "tickets/partials/resolution_section_partial.html" %}
+                
+                <!-- Кнопки управления статусом (только для администраторов и назначенных) -->
+                {% if request.user.is_staff or request.user == ticket.assigned_to %}
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-bottom: 16px;">
+                    <div style="font-size: 0.85rem; color: #718096; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-tasks"></i> Управление статусом
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                        <!-- Кнопка: Открыт -->
+                        {% if ticket.status.name != 'open' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="open">
+                            <button type="submit" class="btn" style="background-color: #dbeafe; color: #0369a1; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-lock-open"></i> Открыт
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: В работе -->
+                        {% if ticket.status.name != 'in_progress' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="btn" style="background-color: #bfdbfe; color: #1e40af; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-spinner"></i> В работе
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Ожидание -->
+                        {% if ticket.status.name != 'waiting' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="waiting">
+                            <button type="submit" class="btn" style="background-color: #fef3c7; color: #92400e; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-hourglass-half"></i> Ожидание
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Решен (ФИНАЛЬНАЯ ТОЧКА РАБОТЫ) -->
+                        {% if ticket.status.name != 'resolved' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="resolved">
+                            <button type="submit" class="btn" style="background-color: #dcfce7; color: #166534; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                <i class="fas fa-check"></i> Решен
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- Кнопка: Отклонить (только для администратора - отмена спама/дубликатов) -->
+                        {% if request.user.is_staff and ticket.status.name != 'closed' %}
+                        <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="closed">
+                            <button type="submit" class="btn" style="background-color: #fee2e2; color: #991b1b; border: none; font-size: 0.85rem; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 500;" title="Закрыть как дубликат или спам">
+                                <i class="fas fa-ban"></i> Отклонить
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> К списку
+                </a>
+                <a href="{% url 'ticket_pdf_view' ticket.id %}" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </a>
+                {% if can_edit %}
+                <a href="{% url 'ticket_edit' ticket.id %}" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Редактировать
+                </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateCommentCount() {
+        const container = document.getElementById('comments-container');
+        const badge = document.getElementById('comment-count');
+        if (!container || !badge) return;
+        badge.textContent = container.querySelectorAll('[data-comment-id]').length;
+    }
+
+    // Функция для автоматической прокрутки чата в конец
+    function scrollToBottom() {
+        const container = document.getElementById('comments-container');
+        if (container) {
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 0);
+        }
+    }
+
+    // Прокруток при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCommentCount();
+        scrollToBottom();
+    });
+
+    // HTMX: прокруток после обновления комментариев
+    document.addEventListener('htmx:afterSettle', function(event) {
+        if (event.detail.target.id === 'comments-container') {
+            updateCommentCount();
+            scrollToBottom();
+        }
+    });
+
+    // Прокруток при отправке формы комментария
+    document.addEventListener('htmx:afterRequest', function(event) {
+        if (event.detail.target.id === 'comment-form') {
+            updateCommentCount();
+            scrollToBottom();
+        }
+    });
+</script>
+{% endblock %}
+
+

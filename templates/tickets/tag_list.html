@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Теги - Ticket System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">🏷️ Теги <span class="badge bg-secondary">{{ total }}</span></h3>
+    <a href="{% url 'tag_create' %}" class="btn btn-success">Добавить тег</a>
+</div>
+
+{% if tags %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Цвет</th>
+                    <th style="width: 220px;">Название</th>
+                    <th>Описание</th>
+                    <th style="width: 210px;" class="text-end">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td>
+                        <span class="badge rounded-pill" style="background-color: {{ tag.color }};">&nbsp;&nbsp;&nbsp;</span>
+                    </td>
+                    <td>{{ tag.name }}</td>
+                    <td>{{ tag.description|default:"-" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'tag_edit' tag.id %}" class="btn btn-sm btn-outline-primary">Изменить</a>
+                        <a href="{% url 'tag_delete' tag.id %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <h5 class="mb-2">Теги не созданы</h5>
+        <p class="text-muted mb-4">Создайте первый тег для категоризации тикетов.</p>
+        <a href="{% url 'tag_create' %}" class="btn btn-success">Добавить тег</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

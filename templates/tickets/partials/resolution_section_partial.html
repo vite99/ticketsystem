@@ -1,0 +1,51 @@
+<div id="resolution-section-container"
+     data-current-status="{{ ticket.status.name|default:'' }}"
+     hx-get="{% url 'resolution_section_partial' ticket.id %}"
+     hx-trigger="every 10s"
+     hx-swap="outerHTML"
+     hx-vals='js:{ current_status: document.getElementById("resolution-section-container")?.dataset.currentStatus || "" }'>
+    {% if ticket.status.name == 'resolved' and request.user == ticket.creator and not request.user.is_staff %}
+    <div style="border: 2px solid #059669; background-color: #ecfdf5; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="font-size: 1rem; font-weight: 600; color: #065f46; margin-bottom: 12px;">
+            <i class="fas fa-check-circle"></i> Проблема решена?
+        </div>
+        <p style="color: #047857; margin: 0 0 12px 0; font-size: 0.9rem;">
+            Если проблема решена, нажмите кнопку ниже, чтобы закрыть тикет. Если нет, сообщите нам об этом.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <form method="POST" action="{% url 'change_ticket_status' ticket.id %}" style="display: contents;">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="closed">
+                <button type="submit" class="btn" style="background-color: #059669; color: white; border: none; font-size: 0.9rem; padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;">
+                    <i class="fas fa-check"></i> Подтверждаю (Закрыть)
+                </button>
+            </form>
+
+            <button class="btn" onclick="document.getElementById('unresolved-modal').style.display='flex';" style="background-color: #dc2626; color: white; border: none; font-size: 0.9rem; padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600;">
+                <i class="fas fa-times"></i> Проблема не решена
+            </button>
+        </div>
+    </div>
+
+    <div id="unresolved-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 24px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 16px 0; color: #1f2937;">Проблема не решена</h3>
+            <p style="color: #6b7280; margin: 0 0 16px 0;">Пожалуйста, опишите, почему проблема не решена:</p>
+
+            <form method="POST" action="{% url 'mark_ticket_unresolved' ticket.id %}">
+                {% csrf_token %}
+                <textarea name="comment" required placeholder="Введите комментарий..." style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; min-height: 100px; box-sizing: border-box; margin-bottom: 12px;"></textarea>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button type="submit" class="btn" style="background-color: #dc2626; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-arrow-left"></i> Вернуть в работу
+                    </button>
+                    <button type="button" class="btn" onclick="document.getElementById('unresolved-modal').style.display='none';" style="background-color: #e5e7eb; color: #374151; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>

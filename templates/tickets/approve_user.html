@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Одобрить пользователя{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Одобрение пользователя</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>Информация о пользователе:</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Имя пользователя:</strong> {{ user.username }}</li>
+                            <li><strong>Email:</strong> {{ user.email }}</li>
+                            <li><strong>Полное имя:</strong> {{ user.get_full_name }}</li>
+                            <li><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</li>
+                            {% if user.profile.department %}
+                            <li><strong>Отдел:</strong> {{ user.profile.department }}</li>
+                            {% endif %}
+                            {% if user.profile.office_room %}
+                            <li><strong>Кабинет сотрудника:</strong> {{ user.profile.office_room }}</li>
+                            {% endif %}
+                            {% if user.profile.phone %}
+                            <li><strong>Телефон:</strong> {{ user.profile.phone }}</li>
+                            {% endif %}
+                            {% if user.profile.workstation %}
+                            <li><strong>Текущее рабочее место:</strong> {{ user.profile.workstation }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <p>Перед одобрением можно отредактировать данные заявки.</p>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.office_room.id_for_label }}">Кабинет сотрудника</label>
+                            {{ form.office_room }}
+                            <small class="text-muted">
+                                Заполняется автоматически при выборе рабочего места, либо вручную
+                            </small>
+                            {% if form.office_room.errors %}
+                            <div class="invalid-feedback d-block">{{ form.office_room.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.department.id_for_label }}">Отдел</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                            <div class="invalid-feedback d-block">{{ form.department.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="{{ form.phone.id_for_label }}">Телефон</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="invalid-feedback d-block">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <input type="hidden" name="workstation_id" id="workstation_id_input" value="{{ user.profile.workstation.id|default:'' }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">Кабинет рабочего места</label>
+                            <select id="room_select" class="form-control">
+                                <option value="">-- Выберите кабинет --</option>
+                                {% for room in rooms %}
+                                <option value="{{ room }}" {% if user.profile.workstation and user.profile.workstation.room == room %}selected{% endif %}>
+                                    {{ room }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Рабочее место/Компьютер</label>
+                            <select id="workstation_select" class="form-control">
+                                <option value="">-- Сначала выберите кабинет --</option>
+                            </select>
+                            <div id="ws_summary" class="mt-2" style="display:none;">
+                                <span class="badge bg-success fs-6" id="ws_summary_text"></span>
+                            </div>
+                            {% if user.profile.workstation %}
+                            <small class="text-muted">Текущее: {{ user.profile.workstation }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" name="action" value="save" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Сохранить
+                            </button>
+                            <button type="submit" name="action" value="approve" class="btn btn-success">
+                                <i class="fas fa-check"></i> Одобрить
+                            </button>
+                            <a href="{% url 'user_approval_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const roomSelect = document.getElementById('room_select');
+const wsSelect = document.getElementById('workstation_select');
+const wsInput = document.getElementById('workstation_id_input');
+const currentWsId = "{{ user.profile.workstation.id|default:'' }}";
+const endpoint = "{% url 'workstations_by_room' %}";
+const officeRoomInput = document.querySelector('input[name="office_room"]');
+const originalOfficeRoom = officeRoomInput ? officeRoomInput.value : '';
+const wsSummary = document.getElementById('ws_summary');
+const wsSummaryText = document.getElementById('ws_summary_text');
+
+function loadWorkstations(room, selectId) {
+    if (!room) {
+        wsSelect.innerHTML = '<option value="">-- Сначала выберите кабинет --</option>';
+        wsInput.value = '';
+        if (wsSummary) {
+            wsSummary.style.display = 'none';
+        }
+        return;
+    }
+
+    fetch(`${endpoint}?room=${encodeURIComponent(room)}`)
+        .then((response) => response.json())
+        .then((data) => {
+            wsSelect.innerHTML = '<option value="">-- Не указано --</option>';
+            data.workstations.forEach((workstation) => {
+                const option = document.createElement('option');
+                option.value = workstation.id;
+                option.textContent = workstation.label;
+                if (String(workstation.id) === String(selectId)) {
+                    option.selected = true;
+                }
+                wsSelect.appendChild(option);
+            });
+            wsInput.value = wsSelect.value;
+            if (wsSelect.value && wsSummary && wsSummaryText) {
+                wsSummaryText.textContent = '✅ ' + wsSelect.options[wsSelect.selectedIndex].text;
+                wsSummary.style.display = 'block';
+            } else if (wsSummary) {
+                wsSummary.style.display = 'none';
+            }
+        })
+        .catch(() => {
+            wsSelect.innerHTML = '<option value="">-- Ошибка загрузки --</option>';
+            wsInput.value = '';
+            if (wsSummary) {
+                wsSummary.style.display = 'none';
+            }
+        });
+}
+
+if (roomSelect && wsSelect && wsInput) {
+    if (roomSelect.value) {
+        loadWorkstations(roomSelect.value, currentWsId);
+    }
+
+    roomSelect.addEventListener('change', () => {
+        loadWorkstations(roomSelect.value, null);
+        if (officeRoomInput && roomSelect.value) {
+            officeRoomInput.value = roomSelect.value;
+        } else if (officeRoomInput && !roomSelect.value) {
+            officeRoomInput.value = originalOfficeRoom;
+        }
+    });
+
+    wsSelect.addEventListener('change', () => {
+        wsInput.value = wsSelect.value;
+        if (officeRoomInput && roomSelect.value) {
+            officeRoomInput.value = roomSelect.value;
+        }
+        if (wsSelect.value) {
+            wsSummaryText.textContent = '✅ ' + wsSelect.options[wsSelect.selectedIndex].text;
+            wsSummary.style.display = 'block';
+        } else {
+            wsSummary.style.display = 'none';
+            if (officeRoomInput) {
+                officeRoomInput.value = originalOfficeRoom;
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

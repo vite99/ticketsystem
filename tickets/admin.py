@@ -1,24 +1,40 @@
 from django.contrib import admin
-from .models import Priority, Status, Tag, Ticket, Comment, Attachment, TicketHistory
+from .models import Priority, Status, Tag, Workstation, Ticket, Comment, Attachment, TicketHistory, UserProfile
 
 
 @admin.register(Priority)
 class PriorityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color')
+    list_display = ('display_name', 'color')
     search_fields = ('name',)
+
+    @admin.display(description='Название', ordering='name')
+    def display_name(self, obj):
+        return obj.get_name_display()
 
 
 @admin.register(Status)
 class StatusAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color', 'is_final')
+    list_display = ('display_name', 'color', 'is_final')
     search_fields = ('name',)
     list_filter = ('is_final',)
+
+    @admin.display(description='Название', ordering='name')
+    def display_name(self, obj):
+        return obj.get_name_display()
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('name', 'color')
     search_fields = ('name',)
+
+
+@admin.register(Workstation)
+class WorkstationAdmin(admin.ModelAdmin):
+    list_display = ('room', 'number', 'location')
+    list_filter = ('room',)
+    search_fields = ('room', 'number', 'location')
+    ordering = ('room', 'number')
 
 
 class CommentInline(admin.TabularInline):
@@ -54,6 +70,9 @@ class TicketAdmin(admin.ModelAdmin):
         }),
         ('Назначение и статус', {
             'fields': ('assigned_to', 'priority', 'status')
+        }),
+        ('Местоположение', {
+            'fields': ('workstation',)
         }),
         ('Теги и сроки', {
             'fields': ('tags', 'due_date', 'estimated_hours')
@@ -112,3 +131,24 @@ class TicketHistoryAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_approved', 'approved_by', 'approved_at', 'department')
+    list_filter = ('is_approved', 'approved_at')
+    search_fields = ('user__username', 'user__email', 'department')
+    readonly_fields = ('approved_at',)
+    
+    fieldsets = (
+        ('Пользователь', {
+            'fields': ('user',)
+        }),
+        ('Одобрение', {
+            'fields': ('is_approved', 'approved_by', 'approved_at')
+        }),
+        ('Информация', {
+            'fields': ('department', 'phone')
+        }),
+    )
+

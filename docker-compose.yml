@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ticket-system-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ticket_system}
+      POSTGRES_USER: ${POSTGRES_USER:-ticket_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticket_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ticket_user} -d ${POSTGRES_DB:-ticket_system}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ticket-system
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-docker-dev-secret-key-change-me}
+      DEBUG: ${DEBUG:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      SITE_URL: ${SITE_URL:-http://127.0.0.1:8000}
+      DB_ENGINE: ${DB_ENGINE:-postgresql}
+      SQLITE_NAME: /app/data/db.sqlite3
+      POSTGRES_DB: ${POSTGRES_DB:-ticket_system}
+      POSTGRES_USER: ${POSTGRES_USER:-ticket_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticket_password}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-False}
+      VK_NOTIFY_ENABLED: ${VK_NOTIFY_ENABLED:-False}
+    volumes:
+      - ticket_data:/app/data
+      - ticket_media:/app/media
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  ticket_data:
+  ticket_media:

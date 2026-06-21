@@ -1,0 +1,31 @@
+{% if ticket.status %}
+    {% if ticket.status.name == 'open' %}
+    <span class="badge" style="background-color: #dbeafe; color: #0369a1; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-lock-open"></i> Открыт
+    </span>
+    {% elif ticket.status.name == 'in_progress' %}
+    <span class="badge" style="background-color: #bfdbfe; color: #1e40af; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-spinner"></i> В работе
+    </span>
+    {% elif ticket.status.name == 'waiting' %}
+    <span class="badge" style="background-color: #fef3c7; color: #92400e; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-hourglass-half"></i> Ожидание
+    </span>
+    {% elif ticket.status.name == 'resolved' %}
+    <span class="badge" style="background-color: #dcfce7; color: #166534; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-check"></i> Решен
+    </span>
+    {% elif ticket.status.name == 'closed' %}
+    <span class="badge" style="background-color: #e5e7eb; color: #374151; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-times"></i> Закрыт
+    </span>
+    {% elif ticket.status.name == 'reopened' %}
+    <span class="badge" style="background-color: #fee2e2; color: #991b1b; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-redo"></i> Переоткрыт
+    </span>
+    {% endif %}
+{% else %}
+    <span class="badge" style="background-color: #f3f4f6; color: #6b7280; padding: 6px 12px; font-weight: 500;">
+        <i class="fas fa-question"></i> Неизвестно
+    </span>
+{% endif %}

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - Ticket System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 120px);
+        padding: 20px;
+    }
+    
+    .register-card {
+        width: 100%;
+        max-width: 500px;
+    }
+    
+    .register-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .register-header h2 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    
+    .register-header p {
+        color: #718096;
+    }
+    
+    .form-group {
+        margin-bottom: 18px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        width: 100%;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .info-box {
+        background-color: #f0f7ff;
+        border-left: 4px solid #17a2b8;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 20px;
+    }
+    
+    .info-box h6 {
+        margin-bottom: 8px;
+        color: #17a2b8;
+    }
+    
+    .password-requirements {
+        background-color: #f8f9fa;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 8px;
+    }
+    
+    .password-requirements li {
+        font-size: 0.85rem;
+        color: #718096;
+    }
+    
+    .login-link {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="register-header">
+                    <h2>📝 Регистрация</h2>
+                    <p>Создайте новую учетную запись</p>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% for error in form.non_field_errors %}
+                        <p class="mb-0"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">
+                            <i class="fas fa-user"></i> {{ form.username.label }}
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                        <div class="invalid-feedback d-block mt-2">
+                            {% for error in form.username.errors %}
+                            <p class="mb-0"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text text-muted d-block mt-1">Только буквы, цифры и символы @, ., +, -, _</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-id-card"></i> {{ form.first_name.label }}
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {{ form.first_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-id-card"></i> {{ form.last_name.label }}
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block mt-2">
+                                    {{ form.last_name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">
+                            <i class="fas fa-envelope"></i> {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="invalid-feedback d-block mt-2">
+                            {% for error in form.email.errors %}
+                            <p class="mb-0"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.password.id_for_label }}" class="form-label">
+                            <i class="fas fa-lock"></i> {{ form.password.label }}
+                        </label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                        <div class="invalid-feedback d-block mt-2">
+                            {{ form.password.errors }}
+                        </div>
+                        {% endif %}
+                        <div class="password-requirements">
+                            <strong style="font-size: 0.85rem; color: #2d3748;">Требования:</strong>
+                            <ul class="mb-0 mt-2 ps-3">
+                                <li>✓ Не менее 8 символов</li>
+                                <li>✓ Содержит буквы и цифры</li>
+                                <li>✓ Не является распространённым паролем</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">
+                            <i class="fas fa-check-circle"></i> {{ form.password2.label }}
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                        <div class="invalid-feedback d-block mt-2">
+                            {% for error in form.password2.errors %}
+                            <p class="mb-0"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary submit-btn">
+                        <i class="fas fa-user-plus"></i> Зарегистрироваться
+                    </button>
+
+                    <div class="login-link">
+                        <p class="text-muted small mb-0">
+                            Уже есть аккаунт? <a href="{% url 'login' %}" class="fw-bold">Войти</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h6><i class="fas fa-info-circle"></i> Важная информация</h6>
+            <p class="mb-0" style="font-size: 0.9rem;">После регистрации ваш аккаунт должен быть одобрен администратором перед тем, как вы сможете в полной мере использовать систему.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

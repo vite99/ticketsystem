@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки уведомлений - Ticket System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Настройки уведомлений</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="form-check mb-3">
+                        {{ form.notify_email }}
+                        <label class="form-check-label" for="{{ form.notify_email.id_for_label }}">
+                            {{ form.notify_email.label }}
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.notify_email_address.id_for_label }}" class="form-label">{{ form.notify_email_address.label }}</label>
+                        {{ form.notify_email_address }}
+                        <small class="text-muted">Если пусто, используется email из аккаунта.</small>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        {{ form.notify_vk }}
+                        <label class="form-check-label" for="{{ form.notify_vk.id_for_label }}">
+                            {{ form.notify_vk.label }}
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.vk_user_id.id_for_label }}" class="form-label">{{ form.vk_user_id.label }}</label>
+                        {{ form.vk_user_id }}
+                        <small class="text-muted">Например: `id12345678` или короткий username.</small>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        {{ form.notify_browser }}
+                        <label class="form-check-label" for="{{ form.notify_browser.id_for_label }}">
+                            {{ form.notify_browser.label }}
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Назад</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

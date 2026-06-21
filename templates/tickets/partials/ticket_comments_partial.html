@@ -1,0 +1,141 @@
+{% load custom_filters %}
+{% if comments %}
+    {% for comment in comments %}
+        {% if comment.is_internal %}
+            <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
+                <div class="flex flex-col max-w-md">
+                    <div class="flex items-baseline gap-2 mb-1">
+                        <span class="text-sm font-semibold text-amber-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                            <i class="fas fa-lock mr-1"></i> Приватный
+                        </span>
+                        <span class="text-xs text-amber-600">{{ comment.created_at|time:"H:i" }}</span>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl rounded-tl-sm px-4 py-3 text-amber-900">
+                        <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                        {% if comment.attachments.all %}
+                        <div class="mt-3 pt-3 border-t border-amber-200">
+                            <div class="grid grid-cols-1 gap-2">
+                                {% for attachment in comment.attachments.all %}
+                                <a href="{{ attachment.file.url }}" target="_blank" class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-amber-100/50 hover:bg-amber-100 transition-all duration-200 border border-amber-200/50 hover:border-amber-300">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-200/70 group-hover:bg-amber-300 flex items-center justify-center transition-all">
+                                        {% if 'pdf' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-pdf text-red-700" style="font-size: 16px;"></i>
+                                        {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-word text-blue-700" style="font-size: 16px;"></i>
+                                        {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-excel text-green-700" style="font-size: 16px;"></i>
+                                        {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                            <i class="fas fa-image text-purple-700" style="font-size: 16px;"></i>
+                                        {% elif 'zip' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-archive text-orange-700" style="font-size: 16px;"></i>
+                                        {% else %}
+                                            <i class="fas fa-file text-amber-700" style="font-size: 16px;"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-medium text-amber-900 truncate group-hover:text-amber-950">{{ attachment.file|filename }}</p>
+                                        <p class="text-xs text-amber-700/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                    </div>
+                                    <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <i class="fas fa-download text-amber-600 text-sm"></i>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% elif comment.author == user %}
+            <div class="flex justify-end mb-4" data-comment-id="{{ comment.id }}">
+                <div class="flex flex-col max-w-md">
+                    <div class="flex items-baseline justify-end gap-2 mb-1">
+                        <span class="text-xs text-blue-500">{{ comment.created_at|time:"H:i" }}</span>
+                        <span class="text-sm font-semibold text-blue-700">Вы</span>
+                    </div>
+                    <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-3 py-2 shadow-sm">
+                        <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                        {% if comment.attachments.all %}
+                        <div class="mt-2 pt-2 border-t border-blue-400">
+                            <div class="grid grid-cols-1 gap-2">
+                                {% for attachment in comment.attachments.all %}
+                                <a href="{{ attachment.file.url }}" target="_blank" class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 transition-all duration-200 border-2 border-white shadow-sm">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-all">
+                                        {% if 'pdf' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-pdf text-red-600" style="font-size: 16px;"></i>
+                                        {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
+                                        {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
+                                        {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                            <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
+                                        {% elif 'zip' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
+                                        {% else %}
+                                            <i class="fas fa-file text-blue-600" style="font-size: 16px;"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-medium text-blue-700 truncate group-hover:text-blue-800">{{ attachment.file|filename }}</p>
+                                        <p class="text-xs text-slate-500">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                    </div>
+                                    <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <i class="fas fa-download text-blue-500 text-sm"></i>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="flex justify-start mb-4" data-comment-id="{{ comment.id }}">
+                <div class="flex flex-col max-w-md">
+                    <div class="flex items-baseline gap-2 mb-1">
+                        <span class="text-sm font-semibold text-slate-900">{{ comment.author.get_full_name|default:comment.author.username }}</span>
+                        <span class="text-xs text-slate-500">{{ comment.created_at|time:"H:i" }}</span>
+                    </div>
+                    <div class="bg-slate-100 text-slate-900 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                        <p class="text-sm leading-relaxed whitespace-pre-wrap">{{ comment.content }}</p>
+                        {% if comment.attachments.all %}
+                        <div class="mt-3 pt-3 border-t border-slate-200">
+                            <div class="grid grid-cols-1 gap-2">
+                                {% for attachment in comment.attachments.all %}
+                                <a href="{{ attachment.file.url }}" target="_blank" class="group flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-200/50 hover:bg-slate-200 transition-all duration-200 border border-slate-300/50 hover:border-slate-400">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-300/70 group-hover:bg-slate-400 flex items-center justify-center transition-all">
+                                        {% if 'pdf' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-pdf text-red-600" style="font-size: 16px;"></i>
+                                        {% elif 'doc' in attachment.file.name|lower or 'docx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-word text-blue-600" style="font-size: 16px;"></i>
+                                        {% elif 'xls' in attachment.file.name|lower or 'xlsx' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-excel text-green-600" style="font-size: 16px;"></i>
+                                        {% elif 'jpg' in attachment.file.name|lower or 'png' in attachment.file.name|lower %}
+                                            <i class="fas fa-image text-purple-600" style="font-size: 16px;"></i>
+                                        {% elif 'zip' in attachment.file.name|lower %}
+                                            <i class="fas fa-file-archive text-orange-600" style="font-size: 16px;"></i>
+                                        {% else %}
+                                            <i class="fas fa-file text-slate-600" style="font-size: 16px;"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-medium text-slate-900 truncate group-hover:text-slate-950">{{ attachment.file|filename }}</p>
+                                        <p class="text-xs text-slate-600/70">{{ attachment.uploaded_at|date:"H:i" }}</p>
+                                    </div>
+                                    <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <i class="fas fa-download text-slate-600 text-sm"></i>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endif %}

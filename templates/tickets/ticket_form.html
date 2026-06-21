@@ -1,131 +1,680 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}{{ title }} - Ticket System{% endblock %}
 
+{% block extra_css %}
+<style>
+    .ticket-form-shell {
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    .ticket-form-hero {
+        margin-bottom: 1.75rem;
+    }
+
+    .ticket-form-title {
+        font-size: 2.1rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        color: var(--fg-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .ticket-form-subtitle {
+        color: var(--fg-muted);
+        max-width: 680px;
+        margin: 0;
+    }
+
+    .ticket-form-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+    }
+
+    .ticket-form-card-body {
+        padding: 2rem;
+    }
+
+    .ticket-form-grid {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .ticket-form-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+
+    .field-group label {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--fg-primary);
+        margin-bottom: 0.55rem;
+    }
+
+    .field-group input,
+    .field-group textarea,
+    .field-group select {
+        width: 100%;
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        background: #fff;
+        color: var(--fg-primary);
+        padding: 0.9rem 1rem;
+        font-size: 0.98rem;
+        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .field-group input:focus,
+    .field-group textarea:focus,
+    .field-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .field-help {
+        margin-top: 0.45rem;
+        font-size: 0.82rem;
+        color: var(--fg-muted);
+    }
+
+    .field-error {
+        margin-top: 0.45rem;
+        font-size: 0.85rem;
+        color: var(--danger);
+    }
+
+    .urgency-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .urgency-btn {
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        color: var(--fg-muted);
+        border-radius: 14px;
+        padding: 0.9rem 1rem;
+        font-weight: 600;
+        transition: all var(--transition-fast);
+    }
+
+    .urgency-btn:hover {
+        border-color: var(--border-strong);
+        color: var(--fg-primary);
+        background: #f8fafc;
+    }
+
+    .urgency-btn.active {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: #fff;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .upload-box {
+        border: 1px dashed var(--border-strong);
+        border-radius: 18px;
+        background: #f8fafc;
+        padding: 2rem 1.25rem;
+        text-align: center;
+        transition: border-color var(--transition-fast), background-color var(--transition-fast);
+    }
+
+    .upload-box.dragover {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+    }
+
+    .upload-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: var(--fg-muted);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 0.85rem;
+    }
+
+    .upload-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        color: var(--fg-primary);
+        border-radius: 12px;
+        padding: 0.7rem 1rem;
+        font-weight: 600;
+        margin-top: 1rem;
+        transition: all var(--transition-fast);
+    }
+
+    .upload-button:hover {
+        background: #f8fafc;
+        border-color: var(--border-strong);
+    }
+
+    .selected-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.9rem;
+    }
+
+    .selected-file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border: 1px solid var(--border-subtle);
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.82rem;
+        color: var(--fg-muted);
+    }
+
+    .existing-files {
+        margin-top: 1rem;
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        background: #fff;
+        padding: 1rem;
+    }
+
+    .existing-files-title {
+        margin-bottom: 0.8rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--fg-muted);
+    }
+
+    .existing-file-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        justify-content: space-between;
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 0.8rem 0.9rem;
+        margin-bottom: 0.65rem;
+        transition: all var(--transition-fast);
+    }
+
+    .existing-file-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .existing-file-row.marked {
+        border-color: rgba(220, 38, 38, 0.35);
+        background: rgba(220, 38, 38, 0.05);
+        opacity: 0.8;
+    }
+
+    .existing-file-link {
+        min-width: 0;
+        color: var(--fg-primary);
+        text-decoration: none;
+        flex: 1;
+    }
+
+    .existing-file-link:hover {
+        color: var(--primary);
+    }
+
+    .existing-file-name {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+    }
+
+    .existing-file-date {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--fg-muted);
+        margin-top: 0.25rem;
+    }
+
+    .delete-file-btn {
+        width: 38px;
+        height: 38px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        border-radius: 10px;
+        transition: all var(--transition-fast);
+        flex-shrink: 0;
+    }
+
+    .delete-file-btn:hover {
+        background: rgba(220, 38, 38, 0.08);
+        color: var(--danger);
+    }
+
+    .delete-file-btn.marked {
+        color: var(--danger);
+        background: rgba(220, 38, 38, 0.08);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.85rem;
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+
+    .btn-ghost-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1rem;
+        border-radius: 12px;
+        color: var(--fg-muted);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all var(--transition-fast);
+    }
+
+    .btn-ghost-link:hover {
+        background: rgba(15, 23, 42, 0.04);
+        color: var(--fg-primary);
+    }
+
+    .btn-primary-solid {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        font-weight: 700;
+        transition: all var(--transition-fast);
+    }
+
+    .btn-primary-solid:hover {
+        background: var(--primary-strong);
+    }
+
+    @media (max-width: 768px) {
+        .ticket-form-card-body {
+            padding: 1.2rem;
+        }
+
+        .ticket-form-grid-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .urgency-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column-reverse;
+        }
+
+        .btn-ghost-link,
+        .btn-primary-solid {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">{{ title }}</h4>
-            </div>
-            <div class="card-body">
-                <form method="post">
+<div class="container py-4">
+    <div class="ticket-form-shell" x-data="ticketFormPage()" x-init="init()">
+        <div class="ticket-form-hero">
+            <h1 class="ticket-form-title">{{ title }}</h1>
+            <p class="ticket-form-subtitle">
+                {% if ticket %}
+                Обновите детали обращения, вложения и срок выполнения в едином стиле системы.
+                {% else %}
+                Заполните детали обращения, и система создаст новый тикет в работу.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="ticket-form-card">
+            <div class="ticket-form-card-body">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    
+
                     {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
+                    <div class="alert alert-danger mb-4">
                         {{ form.non_field_errors }}
                     </div>
                     {% endif %}
 
-                    <div class="mb-3">
-                        <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
-                        {{ form.title }}
-                        {% if form.title.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.title.errors }}
+                    <div class="ticket-form-grid">
+                        <div class="field-group">
+                            <label for="id_template_topic">Тема</label>
+                            <select id="id_template_topic" name="template_topic" x-model="selectedTemplate" @change="applyTemplate()">
+                                {% for value, label in form.template_topic.field.choices %}
+                                <option value="{{ value }}" {% if form.template_topic.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="field-help">Выберите шаблон, чтобы быстрее заполнить заголовок и описание.</div>
+                            {% if form.template_topic.errors %}
+                            <div class="field-error">{{ form.template_topic.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="field-group">
+                            <label for="id_title">Заголовок</label>
+                            <input
+                                id="id_title"
+                                name="title"
+                                type="text"
+                                value="{{ form.title.value|default_if_none:'' }}"
+                                placeholder="{{ form.title.field.widget.attrs.placeholder }}"
+                            >
+                            {% if form.title.errors %}
+                            <div class="field-error">{{ form.title.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="field-group">
+                            <label for="id_description">Описание</label>
+                            <textarea
+                                id="id_description"
+                                name="description"
+                                rows="5"
+                                placeholder="{{ form.description.field.widget.attrs.placeholder }}"
+                            >{{ form.description.value|default_if_none:'' }}</textarea>
+                            {% if form.description.errors %}
+                            <div class="field-error">{{ form.description.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% if form.user_urgency %}
+                        <div class="field-group">
+                            <label>Срочность</label>
+                            <select id="id_user_urgency" name="user_urgency" class="d-none" x-ref="urgencySelect">
+                                {% for value, label in form.user_urgency.field.choices %}
+                                <option value="{{ value }}" {% if form.user_urgency.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="urgency-grid">
+                                <button type="button" class="urgency-btn" :class="{ 'active': selectedUrgency === 'low' }" @click="setUrgency('low')">Низкая</button>
+                                <button type="button" class="urgency-btn" :class="{ 'active': selectedUrgency === 'normal' }" @click="setUrgency('normal')">Обычная</button>
+                                <button type="button" class="urgency-btn" :class="{ 'active': selectedUrgency === 'urgent' }" @click="setUrgency('urgent')">Высокая</button>
+                            </div>
+                            {% if form.user_urgency.errors %}
+                            <div class="field-error">{{ form.user_urgency.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                        {% elif form.priority %}
+                        <div class="ticket-form-grid-2">
+                            <div class="field-group">
+                                <label for="{{ form.priority.id_for_label }}">{{ form.priority.label }}</label>
+                                {{ form.priority }}
+                                {% if form.priority.errors %}
+                                <div class="field-error">{{ form.priority.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            {% if form.status %}
+                            <div class="field-group">
+                                <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <div class="field-error">{{ form.status.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         </div>
                         {% endif %}
-                    </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
-                        {{ form.description }}
-                        {% if form.description.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.description.errors }}
+                        <div class="ticket-form-grid-2">
+                            <div class="field-group">
+                                <label for="{{ form.workstation.id_for_label }}">{{ form.workstation.label }}</label>
+                                {{ form.workstation }}
+                                {% if profile_workstation and not user.is_staff %}
+                                <div class="field-help">Рабочее место подставлено из вашего профиля. При необходимости его можно изменить.</div>
+                                {% else %}
+                                <div class="field-help">Укажите рабочее место или компьютер, чтобы тикет было легче обработать.</div>
+                                {% endif %}
+                                {% if form.workstation.errors %}
+                                <div class="field-error">{{ form.workstation.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="field-group">
+                                <label for="{{ form.due_date.id_for_label }}">{{ form.due_date.label }}</label>
+                                {{ form.due_date }}
+                                <div class="field-help">Если жесткого дедлайна нет, поле можно оставить пустым.</div>
+                                {% if form.due_date.errors %}
+                                <div class="field-error">{{ form.due_date.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% endif %}
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.priority.id_for_label }}" class="form-label">{{ form.priority.label }}</label>
-                            {{ form.priority }}
-                            {% if form.priority.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.priority.errors }}
+                        <div class="field-group">
+                            <label>Файлы</label>
+                            <div class="upload-box" :class="{ 'dragover': dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="handleDrop($event)">
+                                <input id="id_attachments" name="attachments" type="file" multiple class="d-none" x-ref="fileInput" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" @change="syncFiles($event)">
+                                <div class="upload-icon">
+                                    <i data-lucide="upload" class="h-5 w-5"></i>
+                                </div>
+                                <div class="fw-semibold mb-1">Перетащите скриншоты или документы сюда</div>
+                                <div class="field-help">Поддерживаются изображения, PDF, Office-документы и ZIP.</div>
+                                <button type="button" class="upload-button" @click="$refs.fileInput.click()">Выбрать файлы</button>
+                            </div>
+
+                            <template x-if="files.length">
+                                <div class="selected-files">
+                                    <template x-for="file in files" :key="file.name + file.size">
+                                        <span class="selected-file-chip">
+                                            <i data-lucide="paperclip" class="h-3 w-3"></i>
+                                            <span x-text="file.name"></span>
+                                        </span>
+                                    </template>
+                                </div>
+                            </template>
+
+                            {% if existing_attachments %}
+                            <div class="existing-files">
+                                <div class="existing-files-title">Уже прикреплено</div>
+                                {% for attachment in existing_attachments %}
+                                <div class="existing-file-row" :class="{ 'marked': removedAttachmentIds.includes('{{ attachment.id }}') }">
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="existing-file-link">
+                                        <span class="existing-file-name">{{ attachment.file.name|slice:"20:" }}</span>
+                                        <span class="existing-file-date">{{ attachment.uploaded_at|date:"d.m.Y H:i" }}</span>
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="delete-file-btn"
+                                        :class="{ 'marked': removedAttachmentIds.includes('{{ attachment.id }}') }"
+                                        @click="toggleAttachmentDeletion('{{ attachment.id }}')"
+                                        title="Удалить вложение"
+                                    >
+                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                <template x-for="attachmentId in removedAttachmentIds" :key="attachmentId">
+                                    <input type="hidden" name="delete_attachments" :value="attachmentId">
+                                </template>
                             </div>
                             {% endif %}
                         </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
-                            {{ form.status }}
-                            {% if form.status.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.status.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                        {% if form.assigned_to or form.estimated_hours or form.tags %}
+                        <div class="ticket-form-card" style="box-shadow:none;">
+                            <div class="ticket-form-card-body" style="padding:1.25rem;">
+                                <div class="ticket-form-grid">
+                                    <div>
+                                        <div class="fw-semibold mb-1">Дополнительные параметры</div>
+                                        <div class="field-help">Расширенные поля для более точной настройки тикета.</div>
+                                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.assigned_to.id_for_label }}" class="form-label">{{ form.assigned_to.label }}</label>
-                            {{ form.assigned_to }}
-                            {% if form.assigned_to.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.assigned_to.errors }}
-                            </div>
-                            {% endif %}
-                        </div>
+                                    <div class="ticket-form-grid-2">
+                                        {% if form.assigned_to %}
+                                        <div class="field-group">
+                                            <label for="{{ form.assigned_to.id_for_label }}">{{ form.assigned_to.label }}</label>
+                                            {{ form.assigned_to }}
+                                        </div>
+                                        {% endif %}
+                                        {% if form.estimated_hours %}
+                                        <div class="field-group">
+                                            <label for="{{ form.estimated_hours.id_for_label }}">{{ form.estimated_hours.label }}</label>
+                                            {{ form.estimated_hours }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
 
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.estimated_hours.id_for_label }}" class="form-label">{{ form.estimated_hours.label }}</label>
-                            {{ form.estimated_hours }}
-                            {% if form.estimated_hours.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.estimated_hours.errors }}
+                                    {% if form.tags %}
+                                    <div class="field-group">
+                                        <label>{{ form.tags.label }}</label>
+                                        <div class="border rounded-4 p-3">
+                                            {{ form.tags }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="{{ form.due_date.id_for_label }}" class="form-label">{{ form.due_date.label }}</label>
-                        {{ form.due_date }}
-                        {% if form.due_date.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.due_date.errors }}
                         </div>
                         {% endif %}
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">{{ form.tags.label }}</label>
-                        <div class="border rounded p-3">
-                            {{ form.tags }}
-                        </div>
-                        {% if form.tags.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.tags.errors }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'ticket_list' %}" class="btn btn-outline-secondary">Отмена</a>
-                        <button type="submit" class="btn btn-primary">{{ title }}</button>
+                    <div class="form-actions">
+                        <a href="{% if ticket %}{% url 'ticket_detail' ticket.id %}{% else %}{% url 'ticket_list' %}{% endif %}" class="btn-ghost-link">
+                            Отмена
+                        </a>
+                        <button type="submit" class="btn-primary-solid">
+                            {% if ticket %}РЎРѕС…СЂР°РЅРёС‚СЊ РёР·РјРµРЅРµРЅРёСЏ{% else %}{{ title }}{% endif %}
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<style>
-    .form-control, .form-select {
-        padding: 0.75rem;
-        border: 1px solid #dee2e6;
-        border-radius: 0.25rem;
-        width: 100%;
-        font-size: 1rem;
+{% block extra_js %}
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    function ticketFormPage() {
+        return {
+            dragging: false,
+            files: [],
+            removedAttachmentIds: [],
+            allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip'],
+            selectedTemplate: '{{ form.template_topic.value|default_if_none:""|escapejs }}',
+            selectedUrgency: '{{ form.user_urgency.value|default_if_none:"normal"|escapejs }}',
+            templates: {
+                no_internet: {
+                    title: 'РќРµС‚ РёРЅС‚РµСЂРЅРµС‚Р° РЅР° СЂР°Р±РѕС‡РµРј РјРµСЃС‚Рµ',
+                    description: 'РќР° СЂР°Р±РѕС‡РµРј РјРµСЃС‚Рµ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РґРѕСЃС‚СѓРї Рє РёРЅС‚РµСЂРЅРµС‚Сѓ. РљРѕРіРґР° РЅР°С‡Р°Р»Р°СЃСЊ РїСЂРѕР±Р»РµРјР°, С‡С‚Рѕ СѓР¶Рµ РїСЂРѕРІРµСЂРµРЅРѕ, РµСЃС‚СЊ Р»Рё РїСЂРѕР±Р»РµРјР° Сѓ СЃРѕСЃРµРґРЅРёС… РџРљ.'
+                },
+                printer_issue: {
+                    title: 'РџСЂРѕР±Р»РµРјР° СЃ РїСЂРёРЅС‚РµСЂРѕРј',
+                    description: 'РџСЂРёРЅС‚РµСЂ РЅРµ РїРµС‡Р°С‚Р°РµС‚ РёР»Рё РІРѕР·РЅРёРєР°РµС‚ РѕС€РёР±РєР° РїРµС‡Р°С‚Рё. РЈРєР°Р¶РёС‚Рµ РєР°Р±РёРЅРµС‚, РјРѕРґРµР»СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР° Рё С‚РµРєСЃС‚ РѕС€РёР±РєРё.'
+                },
+                account_access: {
+                    title: 'РџСЂРѕР±Р»РµРјР° СЃ РґРѕСЃС‚СѓРїРѕРј Рє Р°РєРєР°СѓРЅС‚Сѓ',
+                    description: 'РќРµ СѓРґР°РµС‚СЃСЏ РІРѕР№С‚Рё РІ СѓС‡РµС‚РЅСѓСЋ Р·Р°РїРёСЃСЊ. РЈРєР°Р¶РёС‚Рµ Р»РѕРіРёРЅ, РіРґРµ РІРѕР·РЅРёРєР°РµС‚ РѕС€РёР±РєР° Рё С‡С‚Рѕ РїРёС€РµС‚ СЃРёСЃС‚РµРјР°.'
+                },
+                software_install: {
+                    title: 'Р—Р°РїСЂРѕСЃ РЅР° СѓСЃС‚Р°РЅРѕРІРєСѓ РїСЂРѕРіСЂР°РјРјС‹',
+                    description: 'РќСѓР¶РЅРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ РїСЂРѕРіСЂР°РјРјСѓ РЅР° СЂР°Р±РѕС‡РёР№ РєРѕРјРїСЊСЋС‚РµСЂ. РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ, РІРµСЂСЃРёСЋ Рё С†РµР»СЊ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ.'
+                },
+                pc_slow: {
+                    title: 'РљРѕРјРїСЊСЋС‚РµСЂ СЂР°Р±РѕС‚Р°РµС‚ РјРµРґР»РµРЅРЅРѕ',
+                    description: 'РљРѕРјРїСЊСЋС‚РµСЂ Р·Р°РјРµС‚РЅРѕ С‚РѕСЂРјРѕР·РёС‚. РЈРєР°Р¶РёС‚Рµ, РєР°РєРёРµ РїСЂРѕРіСЂР°РјРјС‹ РѕС‚РєСЂС‹С‚С‹ Рё РІ РєР°РєРѕР№ РјРѕРјРµРЅС‚ РїСЂРѕР±Р»РµРјР° РїСЂРѕСЏРІР»СЏРµС‚СЃСЏ.'
+                }
+            },
+            init() {
+                if (!['low', 'normal', 'urgent'].includes(this.selectedUrgency)) {
+                    this.selectedUrgency = this.selectedUrgency === 'critical' ? 'urgent' : 'normal';
+                }
+                this.syncUrgencyField();
+                this.refreshIcons();
+            },
+            applyTemplate() {
+                const preset = this.templates[this.selectedTemplate];
+                if (!preset) return;
+                document.getElementById('id_title').value = preset.title;
+                document.getElementById('id_description').value = preset.description;
+            },
+            setUrgency(value) {
+                this.selectedUrgency = value;
+                this.syncUrgencyField();
+            },
+            syncUrgencyField() {
+                if (this.$refs.urgencySelect) {
+                    this.$refs.urgencySelect.value = this.selectedUrgency;
+                }
+            },
+            syncFiles(event) {
+                const selectedFiles = Array.from(event.target.files || []);
+                const validFiles = selectedFiles.filter(file => this.isAllowedFile(file));
+                const dataTransfer = new DataTransfer();
+                validFiles.forEach(file => dataTransfer.items.add(file));
+                this.$refs.fileInput.files = dataTransfer.files;
+                this.files = validFiles;
+                this.dragging = false;
+                this.refreshIcons();
+            },
+            handleDrop(event) {
+                const droppedFiles = Array.from(event.dataTransfer.files || []).filter(file => this.isAllowedFile(file));
+                const dataTransfer = new DataTransfer();
+                droppedFiles.forEach(file => dataTransfer.items.add(file));
+                this.$refs.fileInput.files = dataTransfer.files;
+                this.files = droppedFiles;
+                this.dragging = false;
+                this.refreshIcons();
+            },
+            isAllowedFile(file) {
+                const extension = (file.name || '').split('.').pop().toLowerCase();
+                const isAllowed = this.allowedExtensions.includes(extension);
+                if (!isAllowed) {
+                    alert(`Недопустимый тип файла: ${file.name}. Разрешены JPG, PNG, PDF, DOC, DOCX, XLS, XLSX, TXT и ZIP.`);
+                }
+                return isAllowed;
+            },
+            toggleAttachmentDeletion(attachmentId) {
+                if (this.removedAttachmentIds.includes(attachmentId)) {
+                    this.removedAttachmentIds = this.removedAttachmentIds.filter(id => id !== attachmentId);
+                } else {
+                    this.removedAttachmentIds.push(attachmentId);
+                }
+                this.refreshIcons();
+            },
+            refreshIcons() {
+                this.$nextTick(() => {
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                });
+            }
+        }
     }
-    .form-control:focus, .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-</style>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    });
+</script>
 {% endblock %}

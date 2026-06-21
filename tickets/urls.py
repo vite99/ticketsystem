@@ -5,16 +5,62 @@ urlpatterns = [
     # Аутентификация
     path('login/', views.TicketLoginView.as_view(), name='login'),
     path('logout/', views.TicketLogoutView.as_view(), name='logout'),
+    path('register/', views.register_view, name='register'),
     
     # Тикеты
     path('', views.ticket_list, name='ticket_list'),
+    path('archive/', views.ticket_archive, name='ticket_archive'),
     path('create/', views.ticket_create, name='ticket_create'),
     path('<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
+    path('<int:ticket_id>/pdf/', views.ticket_pdf_view, name='ticket_pdf_view'),
     path('<int:ticket_id>/edit/', views.ticket_edit, name='ticket_edit'),
+    path('<int:ticket_id>/change-status/', views.change_ticket_status, name='change_ticket_status'),
+    path('<int:ticket_id>/mark-unresolved/', views.mark_ticket_unresolved, name='mark_ticket_unresolved'),
+    path('<int:ticket_id>/confirm-resolution/', views.confirm_ticket_resolution, name='confirm_ticket_resolution'),
+    path('<int:ticket_id>/reopen-by-creator/', views.reopen_ticket_by_creator, name='reopen_ticket_by_creator'),
+    path('<int:ticket_id>/cancel-by-creator/', views.cancel_ticket_by_creator, name='cancel_ticket_by_creator'),
+    path('<int:ticket_id>/assign-to-me/', views.assign_ticket_to_me, name='assign_ticket_to_me'),
+    path('<int:ticket_id>/unassign/', views.unassign_ticket, name='unassign_ticket'),
+    path('<int:ticket_id>/tags/add/', views.add_ticket_tag, name='add_ticket_tag'),
+    path('<int:ticket_id>/tags/<int:tag_id>/remove/', views.remove_ticket_tag, name='remove_ticket_tag'),
+    path('api/new-tickets/', views.get_new_tickets, name='get_new_tickets'),
+    path('api/new-comments/', views.get_new_comment_notifications, name='get_new_comment_notifications'),
+    path('api/browser-notifications/', views.get_new_browser_notifications, name='get_new_browser_notifications'),
+    path('api/workstations-by-room/', views.workstations_by_room, name='workstations_by_room'),
     
     # Комментарии
     path('<int:ticket_id>/comment/', views.add_comment, name='add_comment'),
+    path('<int:ticket_id>/load-more-comments/', views.load_more_comments, name='load_more_comments'),
     
     # Личный кабинет
     path('dashboard/', views.my_dashboard, name='dashboard'),
+    path('statistics/', views.ticket_statistics, name='ticket_statistics'),
+    path('settings/notifications/', views.notification_settings, name='notification_settings'),
+    path('settings/initial-setup/', views.initial_setup, name='initial_setup'),
+    
+    # Управление одобрением пользователей (только для администраторов)
+    path('users/approval/', views.user_approval_list, name='user_approval_list'),
+    path('users/<int:user_id>/approve/', views.approve_user, name='approve_user'),
+    path('users/<int:user_id>/edit/', views.edit_user_admin, name='edit_user_admin'),
+    path('users/<int:user_id>/reject/', views.reject_user, name='reject_user'),
+    path('users/<int:user_id>/revoke/', views.revoke_approval, name='revoke_approval'),
+    path('users/<int:user_id>/', views.user_detail_admin, name='user_detail_admin'),
+    path('workstations/', views.workstation_list, name='workstation_list'),
+    path('workstations/create/', views.workstation_create, name='workstation_create'),
+    path('workstations/<int:workstation_id>/edit/', views.workstation_edit, name='workstation_edit'),
+    path('workstations/<int:workstation_id>/delete/', views.workstation_delete, name='workstation_delete'),
+    path('tags/', views.tag_list, name='tag_list'),
+    path('tags/create/', views.tag_create, name='tag_create'),
+    path('tags/<int:tag_id>/edit/', views.tag_edit, name='tag_edit'),
+    path('tags/<int:tag_id>/delete/', views.tag_delete, name='tag_delete'),
+    
+    # HTMX Live Updates
+    path('api/ticket/<int:ticket_id>/status/', views.ticket_status_partial, name='ticket_status_partial'),
+    path('api/ticket/<int:ticket_id>/comments/', views.ticket_comments_partial, name='ticket_comments_partial'),
+    path('api/ticket/<int:ticket_id>/comment-section/', views.comment_section_partial, name='comment_section_partial'),
+    path('api/ticket/<int:ticket_id>/resolution-section/', views.resolution_section_partial, name='resolution_section_partial'),
+    path('api/new-tickets-count/', views.new_tickets_count, name='new_tickets_count'),
+    path('api/new-tickets-badge/', views.new_tickets_badge, name='new_tickets_badge'),
+    path('api/ticket-list-rows/', views.ticket_list_rows_partial, name='ticket_list_rows_partial'),
+    path('api/ticket-count/', views.ticket_count_partial, name='ticket_count_partial'),
 ]

@@ -1,0 +1,53 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ title }} - Ticket System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">{{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.room.id_for_label }}" class="form-label">{{ form.room.label }}</label>
+                        {{ form.room }}
+                        {% if form.room.errors %}
+                        <div class="invalid-feedback d-block">{{ form.room.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.number.id_for_label }}" class="form-label">{{ form.number.label }}</label>
+                        {{ form.number }}
+                        {% if form.number.errors %}
+                        <div class="invalid-feedback d-block">{{ form.number.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.location.id_for_label }}" class="form-label">{{ form.location.label }}</label>
+                        {{ form.location }}
+                        {% if form.location.errors %}
+                        <div class="invalid-feedback d-block">{{ form.location.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'workstation_list' %}" class="btn btn-outline-secondary">Отмена</a>
+                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
