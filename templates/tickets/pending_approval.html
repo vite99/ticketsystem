@@ -22,14 +22,14 @@
                         Администратор проверит вашу учетную запись и отправит уведомление, когда она будет одобрена.
                     </div>
                     
-                    <div class="d-flex gap-2 justify-content-center mt-4">
-                        <form method="post" action="{% url 'logout' %}" class="d-inline">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-secondary">
-        <i class="fas fa-sign-out-alt"></i> Выход
-    </button>
-</form>
-                        <a href="{% url 'login' %}" class="btn btn-primary">
+                    <div class="d-flex gap-2 justify-content-center mt-4 flex-wrap">
+                        <form method="post" action="{% url 'logout' %}" class="pending-action-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-secondary pending-action-btn">
+                                <i class="fas fa-sign-out-alt"></i> Выход
+                            </button>
+                        </form>
+                        <a href="{% url 'login' %}" class="btn btn-primary pending-action-btn">
                             <i class="fas fa-refresh"></i> Обновить
                         </a>
                     </div>
@@ -46,6 +46,28 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+    }
+
+    .pending-action-btn {
+        width: 170px;
+        height: 48px;
+        padding: 0 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        line-height: 1.15;
+        white-space: nowrap;
+    }
+
+    .pending-action-form {
+        display: contents;
+    }
+
+    @media (max-width: 420px) {
+        .pending-action-btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}

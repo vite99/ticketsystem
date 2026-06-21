@@ -542,7 +542,7 @@ def load_more_comments(request, ticket_id):
     return render(request, 'tickets/partials/older_comments.html', context)
 
 
-@login_required(login_url='login')
+@require_approval
 def ticket_create(request):
     """РЎРѕР·РґР°РЅРёРµ РЅРѕРІРѕРіРѕ С‚РёРєРµС‚Р°"""
     # Р’С‹Р±РёСЂР°РµРј С„РѕСЂРјСѓ РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ СЂРѕР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ

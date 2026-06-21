@@ -13,7 +13,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-
+media/
 # Django
 *.log
 local_settings.py

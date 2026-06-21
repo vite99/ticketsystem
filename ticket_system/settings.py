@@ -17,6 +17,19 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def cast_debug(value):
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {'1', 'true', 'yes', 'on', 'dev', 'debug', 'development'}:
+        return True
+    if normalized in {'0', 'false', 'no', 'off', 'prod', 'production', 'release'}:
+        return False
+
+    raise ValueError(f'Invalid DEBUG value: {value}')
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -24,7 +37,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-*tb24%fvk9$1$z(jaowj8ow(crqfdz-oy0p4ux5y^yb685*-mv')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=cast_debug)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 

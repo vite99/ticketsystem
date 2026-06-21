@@ -73,11 +73,32 @@
         gap: 8px;
         flex-wrap: wrap;
     }
+    .action-buttons form {
+        display: contents;
+    }
     .btn-action {
-        padding: 6px 14px;
+        width: 150px;
+        min-height: 38px;
+        padding: 7px 12px;
         font-size: 0.85rem;
-        border-radius: 6px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1.15;
+        white-space: nowrap;
         transition: all 0.2s ease;
+    }
+    .btn-action i {
+        width: 14px;
+        text-align: center;
+        flex: 0 0 14px;
+    }
+    @media (max-width: 575.98px) {
+        .btn-action {
+            width: 100%;
+        }
     }
     .empty-state {
         text-align: center;
@@ -123,16 +144,16 @@
                             </div>
                         </div>
                         <div class="action-buttons mt-3 pt-3 border-top">
-                            <a href="{% url 'approve_user' user.id %}" class="btn btn-sm btn-success btn-action" title="Одобрить">
+                            <a href="{% url 'approve_user' user.id %}" class="btn btn-success btn-action" title="Одобрить">
                                 <i class="fas fa-check"></i> Одобрить
                             </a>
-                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-sm btn-primary btn-action" title="Редактировать">
+                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-primary btn-action" title="Редактировать">
                                 <i class="fas fa-pen"></i> Редактировать
                             </a>
-                            <form class="reject-form" method="post" action="{% url 'reject_user' user.id %}" style="display:inline;" data-user-id="{{ user.id }}">
+                            <form class="reject-form" method="post" action="{% url 'reject_user' user.id %}" data-user-id="{{ user.id }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="reject">
-                                <button type="submit" class="btn btn-sm btn-danger reject-btn" title="Отклонить" onclick="return confirm('Вы уверены? Пользователь больше не сможет входить в систему.');">
+                                <button type="submit" class="btn btn-danger btn-action reject-btn" title="Отклонить" onclick="return confirm('Вы уверены? Пользователь больше не сможет входить в систему.');">
                                     <i class="fas fa-times"></i> Отклонить
                                 </button>
                             </form>
@@ -180,13 +201,13 @@
                             </div>
                         </div>
                         <div class="action-buttons mt-3 pt-3 border-top">
-                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-sm btn-primary btn-action" title="Редактировать пользователя">
+                            <a href="{% url 'edit_user_admin' user.id %}" class="btn btn-primary btn-action" title="Редактировать пользователя">
                                 <i class="fas fa-pen"></i> Редактировать
                             </a>
-                            <a href="{% url 'user_detail_admin' user.id %}" class="btn btn-sm btn-outline-secondary btn-action" title="Открыть профиль">
+                            <a href="{% url 'user_detail_admin' user.id %}" class="btn btn-outline-secondary btn-action" title="Открыть профиль">
                                 <i class="fas fa-user"></i> Профиль
                             </a>
-                            <a href="{% url 'revoke_approval' user.id %}" class="btn btn-sm btn-warning btn-action" title="Отозвать одобрение">
+                            <a href="{% url 'revoke_approval' user.id %}" class="btn btn-warning btn-action" title="Отозвать одобрение">
                                 <i class="fas fa-undo"></i> Отозвать
                             </a>
                         </div>

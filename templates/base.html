@@ -492,9 +492,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'ticket_list' %}">Тикеты</a>
                     </li>
+                    {% if user.is_staff or user.is_superuser or user.profile.is_approved %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'ticket_create' %}">Создать</a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'dashboard' %}">Мой кабинет</a>
                     </li>
